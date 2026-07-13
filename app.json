@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "rrhh-mobile-app",
+    "slug": "rrhh-mobile-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "scheme": "rrhhapp",
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La aplicación necesita acceso a la cámara para escanear códigos QR."
+        }
+      ],
+      "@react-native-community/datetimepicker"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rrhh.mobileapp",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Esta aplicación usa la cámara para registrar asistencia mediante QR."
+      }
+    },
+    "android": {
+      "package": "com.rrhh.mobileapp",
+      "permissions": [
+        "CAMERA"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0b1220"
+      }
+    },
+    "extra": {
+      "EXPO_PUBLIC_API_URL": "http://192.168.3.48:4000"
+    }
+  }
+}
