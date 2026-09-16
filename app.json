@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "rrhh-mobile-app",
+    "name": "SMART RH",
     "slug": "rrhh-mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,20 +17,45 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 320,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ],
+      "expo-notifications"
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rrhh.mobileapp",
       "infoPlist": {
         "NSCameraUsageDescription": "Esta aplicación usa la cámara para registrar asistencia mediante QR."
-      }
+      },
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.rrhh.mobileapp",
       "permissions": [
-        "CAMERA"
-      ]
-    }
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "icon": "./assets/icon.png",
+    "extra": {
+      "eas": {
+        "projectId": "65bb2cee-df79-4fbe-92dc-2671a36cfd18"
+      }
+    },
+    "owner": "bzrfn"
   }
 }
