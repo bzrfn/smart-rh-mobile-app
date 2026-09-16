@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,14 +11,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
+import { usePrivateMediaUri } from '../../hooks/usePrivateMediaUri';
+import { sharePrivateMedia } from '../../services/privateMedia';
 import { useAuth } from '../../contexts/AuthContext';
-
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.3.73:4000';
-
-function fullUrl(url?: string | null) {
-  if (!url) return '';
-  return url.startsWith('http') ? url : `${API_BASE}${url}`;
-}
 
 type Contrato = {
   id: number;
@@ -33,7 +27,7 @@ type Contrato = {
 };
 
 export default function DocumentosScreen() {
-  const { user, updateUser, theme } = useAuth();
+  const { user, updateUser, theme, token } = useAuth();
 
   const isDark = theme === 'dark';
   const styles = getStyles(isDark);
@@ -47,9 +41,9 @@ export default function DocumentosScreen() {
   const [contratoUrl, setContratoUrl] = useState('');
   const [credencialUrl, setCredencialUrl] = useState(user?.credencial_url || '');
 
-  const fotoPerfilUrl = useMemo(
-    () => fullUrl(user?.foto_perfil_url),
-    [user?.foto_perfil_url]
+  const { localUri: fotoPerfilLocalUri } = usePrivateMediaUri(
+    user?.foto_perfil_url,
+    token
   );
 
   async function loadContrato() {
@@ -130,14 +124,25 @@ export default function DocumentosScreen() {
   }
 
   async function openUrl(url?: string | null, emptyMessage?: string) {
-    const finalUrl = fullUrl(url);
-
-    if (!finalUrl) {
+    if (!url) {
       Alert.alert('Sin documento', emptyMessage || 'Documento no disponible.');
       return;
     }
 
-    await Linking.openURL(finalUrl);
+    try {
+      await sharePrivateMedia(
+        url,
+        token,
+        'SMART RH - Documento'
+      );
+    } catch (error) {
+      Alert.alert(
+        'No se pudo abrir',
+        error instanceof Error
+          ? error.message
+          : 'No se pudo abrir el documento.'
+      );
+    }
   }
 
   return (
@@ -153,8 +158,8 @@ export default function DocumentosScreen() {
 
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            {fotoPerfilUrl ? (
-              <Image source={{ uri: fotoPerfilUrl }} style={styles.avatarImage} />
+            {fotoPerfilLocalUri ? (
+              <Image source={{ uri: fotoPerfilLocalUri }} style={styles.avatarImage} />
             ) : (
               <Text style={styles.avatarText}>
                 {user?.nombre?.[0]?.toUpperCase() || 'S'}

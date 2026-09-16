@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,17 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
+import { usePrivateMediaUri } from '../../hooks/usePrivateMediaUri';
+import { sharePrivateMedia } from '../../services/privateMedia';
 import { useAuth } from '../../contexts/AuthContext';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.3.73:4000';
-
-function fullUrl(url?: string | null) {
-  if (!url) return '';
-  return url.startsWith('http') ? url : `${API_BASE}${url}`;
-}
-
 export default function CredencialScreen() {
-  const { user, updateUser, theme } = useAuth();
+  const { user, updateUser, theme, token } = useAuth();
 
   const isDark = theme === 'dark';
   const styles = getStyles(isDark);
@@ -31,8 +25,21 @@ export default function CredencialScreen() {
   const [loading, setLoading] = useState(false);
   const [credencialUrl, setCredencialUrl] = useState(user?.credencial_url || '');
 
-  const fotoUrl = fullUrl(user?.foto_perfil_url);
-  const finalCredencialUrl = fullUrl(credencialUrl || user?.credencial_url);
+  const finalCredencialUrl =
+    credencialUrl || user?.credencial_url || '';
+
+  const { localUri: fotoLocalUri } = usePrivateMediaUri(
+    user?.foto_perfil_url,
+    token
+  );
+
+  const {
+    localUri: credencialLocalUri,
+    loading: loadingCredencialPreview,
+  } = usePrivateMediaUri(
+    finalCredencialUrl,
+    token
+  );
 
   useEffect(() => {
     setCredencialUrl(user?.credencial_url || '');
@@ -65,11 +72,27 @@ export default function CredencialScreen() {
 
   async function openCredential() {
     if (!finalCredencialUrl) {
-      Alert.alert('Sin credencial', 'Este usuario aún no tiene credencial generada.');
+      Alert.alert(
+        'Sin credencial',
+        'Este usuario aún no tiene credencial generada.'
+      );
       return;
     }
 
-    await Linking.openURL(finalCredencialUrl);
+    try {
+      await sharePrivateMedia(
+        finalCredencialUrl,
+        token,
+        'SMART RH - Credencial'
+      );
+    } catch (error) {
+      Alert.alert(
+        'No se pudo abrir',
+        error instanceof Error
+          ? error.message
+          : 'No se pudo abrir la credencial.'
+      );
+    }
   }
 
   return (
@@ -85,8 +108,8 @@ export default function CredencialScreen() {
 
         <View style={styles.employeeCard}>
           <View style={styles.avatar}>
-            {fotoUrl ? (
-              <Image source={{ uri: fotoUrl }} style={styles.avatarImage} />
+            {fotoLocalUri ? (
+              <Image source={{ uri: fotoLocalUri }} style={styles.avatarImage} />
             ) : (
               <Text style={styles.avatarText}>{user?.nombre?.[0]?.toUpperCase() || 'S'}</Text>
             )}
@@ -119,7 +142,19 @@ export default function CredencialScreen() {
 
           {finalCredencialUrl ? (
             <View style={styles.previewBox}>
-              <Image source={{ uri: finalCredencialUrl }} style={styles.previewImage} resizeMode="contain" />
+              {loadingCredencialPreview ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : credencialLocalUri ? (
+                <Image
+                  source={{ uri: credencialLocalUri }}
+                  style={styles.previewImage}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Text style={styles.emptyText}>
+                  No se pudo cargar la vista previa.
+                </Text>
+              )}
             </View>
           ) : (
             <View style={styles.emptyBox}>

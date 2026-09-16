@@ -13,6 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import {
+  deletePrivateMedia,
+  downloadPrivateMedia,
+} from '../../services/privateMedia';
+import {
   configureNotifications,
   showLocalNotificationOnce,
 } from '../../services/notifications';
@@ -79,13 +83,7 @@ type SheetAction = {
   onPress?: () => void;
 };
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.3.73:4000';
 const NOTIFICATION_REPEAT_MS = 5 * 60 * 1000;
-
-function fullUrl(url?: string | null) {
-  if (!url) return '';
-  return url.startsWith('http') ? url : `${API_BASE}${url}`;
-}
 
 function normalizeText(value?: string) {
   return String(value || '').trim().toUpperCase();
@@ -261,7 +259,7 @@ function getNotificationAccent(item?: Notificacion | null): Accent {
 }
 
 export default function HomeScreen({ navigation }: Props) {
-  const { user, permisos, logout, theme, toggleTheme } = useAuth();
+  const { user, permisos, logout, theme, toggleTheme, token } = useAuth();
 
   const isDark = theme === 'dark';
   const styles = getStyles(isDark);
@@ -272,16 +270,63 @@ export default function HomeScreen({ navigation }: Props) {
   const [pairingCode, setPairingCode] = useState<PairingCodeResponse | null>(null);
   const [pairingCodeExpiresAt, setPairingCodeExpiresAt] = useState<number | null>(null);
   const [loadingWearable, setLoadingWearable] = useState(false);
+  const [photoLocalUri, setPhotoLocalUri] = useState('');
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
 
   const loadingNotificationsRef = useRef(false);
   const lastNotificationShownRef = useRef<string | null>(null);
   const lastNotificationTimeRef = useRef<number>(0);
   const dismissedNotificationIdRef = useRef<string | null>(null);
 
-  const photoUrl = fullUrl(user?.foto_perfil_url);
   const hasProfilePhoto = Boolean(user?.foto_perfil_url);
   const hasCredential = Boolean(user?.credencial_url);
   const isAdmin = String(user?.role || '').toLowerCase() === 'admin';
+
+  useEffect(() => {
+    let cancelled = false;
+    let localUri = '';
+
+    setPhotoLocalUri('');
+    setPhotoLoadFailed(false);
+
+    async function loadProfilePhoto() {
+      if (!user?.foto_perfil_url || !token) return;
+
+      try {
+        const downloadedUri = await downloadPrivateMedia(
+          user.foto_perfil_url,
+          token
+        );
+
+        if (cancelled) {
+          await deletePrivateMedia(downloadedUri);
+          return;
+        }
+
+        localUri = downloadedUri;
+        setPhotoLocalUri(downloadedUri);
+      } catch (error) {
+        console.log(
+          '[SMART RH] No se pudo cargar la foto en Home:',
+          error instanceof Error ? error.message : 'Error desconocido'
+        );
+
+        if (!cancelled) {
+          setPhotoLoadFailed(true);
+        }
+      }
+    }
+
+    loadProfilePhoto();
+
+    return () => {
+      cancelled = true;
+
+      if (localUri) {
+        deletePrivateMedia(localUri);
+      }
+    };
+  }, [user?.foto_perfil_url, token]);
 
   const notificationAction = useMemo(
     () => getNotificationAction(notificacion),
@@ -908,8 +953,12 @@ export default function HomeScreen({ navigation }: Props) {
             onPress={() => setAccountSheetVisible(true)}
           >
             <View style={styles.accountAvatar}>
-              {photoUrl ? (
-                <Image source={{ uri: photoUrl }} style={styles.accountAvatarImage} />
+              {photoLocalUri && !photoLoadFailed ? (
+                <Image
+                  source={{ uri: photoLocalUri }}
+                  style={styles.accountAvatarImage}
+                  onError={() => setPhotoLoadFailed(true)}
+                />
               ) : (
                 <Text style={styles.accountAvatarText}>
                   {user?.nombre?.[0] || 'S'}
@@ -1324,10 +1373,16 @@ export default function HomeScreen({ navigation }: Props) {
 
               <View style={styles.profileSheetCard}>
                 <View style={styles.sheetAvatar}>
-                  {photoUrl ? (
-                    <Image source={{ uri: photoUrl }} style={styles.sheetAvatarImage} />
+                  {photoLocalUri && !photoLoadFailed ? (
+                    <Image
+                      source={{ uri: photoLocalUri }}
+                      style={styles.sheetAvatarImage}
+                      onError={() => setPhotoLoadFailed(true)}
+                    />
                   ) : (
-                    <Text style={styles.sheetAvatarText}>{user?.nombre?.[0] || 'S'}</Text>
+                    <Text style={styles.sheetAvatarText}>
+                      {user?.nombre?.[0] || 'S'}
+                    </Text>
                   )}
                 </View>
 

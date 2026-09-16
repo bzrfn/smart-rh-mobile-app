@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import { sharePrivateMedia } from '../../services/privateMedia';
 
 type Props = {
   navigation: any;
@@ -32,15 +32,8 @@ type ContratoItem = {
   contrato_pdf_url?: string | null;
 };
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.3.73:4000';
-
-function fullUrl(url?: string | null) {
-  if (!url) return '';
-  return url.startsWith('http') ? url : `${API_BASE}${url}`;
-}
-
 export default function ContratosScreen({ navigation }: Props) {
-  const { permisos, user, theme } = useAuth();
+  const { permisos, user, theme, token } = useAuth();
 
   const isDark = theme === 'dark';
   const styles = getStyles(isDark);
@@ -92,14 +85,28 @@ export default function ContratosScreen({ navigation }: Props) {
   }, [items]);
 
   async function openContract(url?: string | null) {
-    const finalUrl = fullUrl(url);
-
-    if (!finalUrl) {
-      Alert.alert('Contrato no disponible', 'Este contrato todavía no tiene PDF generado.');
+    if (!url) {
+      Alert.alert(
+        'Contrato no disponible',
+        'Este contrato todavía no tiene PDF generado.'
+      );
       return;
     }
 
-    await Linking.openURL(finalUrl);
+    try {
+      await sharePrivateMedia(
+        url,
+        token,
+        'SMART RH - Contrato laboral'
+      );
+    } catch (error) {
+      Alert.alert(
+        'No se pudo abrir',
+        error instanceof Error
+          ? error.message
+          : 'No se pudo abrir el contrato.'
+      );
+    }
   }
 
   async function generateContractPdf(item: ContratoItem) {

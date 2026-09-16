@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
-import { getFullUrl } from '../../services/api';
+import { deletePrivateMedia, downloadPrivateMedia } from '../../services/privateMedia';
 
 type Props = {
   navigation: any;
@@ -41,13 +41,57 @@ function getInitials(nombre?: string, apellido?: string) {
 }
 
 export default function PerfilScreen({ navigation }: Props) {
-  const { user, permisos, theme, toggleTheme, logout } = useAuth();
+  const { user, permisos, theme, toggleTheme, logout, token } = useAuth();
 
   const isDark = theme === 'dark';
   const styles = getStyles(isDark);
 
-  const photoUrl = getFullUrl(user?.foto_perfil_url);
+  const [photoLocalUri, setPhotoLocalUri] = useState('');
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
+
   const hasPhoto = Boolean(user?.foto_perfil_url);
+
+  useEffect(() => {
+    let active = true;
+    let downloadedUri = '';
+
+    async function loadProfilePhoto() {
+      setPhotoLocalUri('');
+      setPhotoLoadFailed(false);
+
+      if (!user?.foto_perfil_url || !token) return;
+
+      try {
+        downloadedUri = await downloadPrivateMedia(
+          user.foto_perfil_url,
+          token
+        );
+
+        if (active) {
+          setPhotoLocalUri(downloadedUri);
+        }
+      } catch (error) {
+        console.log(
+          '[SMART RH] No se pudo cargar la foto de perfil.',
+          error instanceof Error ? error.message : 'Error desconocido'
+        );
+
+        if (active) {
+          setPhotoLoadFailed(true);
+        }
+      }
+    }
+
+    loadProfilePhoto();
+
+    return () => {
+      active = false;
+
+      if (downloadedUri) {
+        deletePrivateMedia(downloadedUri);
+      }
+    };
+  }, [user?.foto_perfil_url, token]);
   const hasCredential = Boolean(user?.credencial_url);
   const vacaciones = Number(user?.dias_vacaciones_disponibles ?? 0);
 
@@ -56,8 +100,12 @@ export default function PerfilScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <View style={styles.avatar}>
-            {photoUrl ? (
-              <Image source={{ uri: photoUrl }} style={styles.avatarImage} />
+            {photoLocalUri && !photoLoadFailed ? (
+              <Image
+                source={{ uri: photoLocalUri }}
+                style={styles.avatarImage}
+                onError={() => setPhotoLoadFailed(true)}
+              />
             ) : (
               <Text style={styles.avatarText}>
                 {getInitials(user?.nombre, user?.apellido)}
