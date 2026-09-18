@@ -25,6 +25,7 @@ import NominaScreen from '../modules/nomina/NominaScreen';
 import VacacionesScreen from '../modules/vacaciones/VacacionesScreen';
 import AdminUsuariosScreen from '../modules/admin/AdminUsuariosScreen';
 import CredencialScreen from '../modules/documentos/CredencialScreen';
+import VerificarCredencialScreen from '../modules/documentos/VerificarCredencialScreen';
 import DocumentosScreen from '../modules/documentos/DocumentosScreen';
 import NotificacionesScreen from '../modules/notificaciones/NotificacionesScreen';
 import ActividadScreen from '../modules/actividad/ActividadScreen';
@@ -47,6 +48,7 @@ export type RootStackParamList = {
   Vacaciones: undefined;
   AdminUsuarios: undefined;
   Credencial: undefined;
+  VerificarCredencial: undefined;
   Documentos: undefined;
   Notificaciones: undefined;
   Actividad: undefined;
@@ -247,6 +249,11 @@ function AppNavigator() {
       <Stack.Screen name="Nomina" component={NominaScreen} options={{ title: 'Nóminas' }} />
       <Stack.Screen name="Vacaciones" component={VacacionesScreen} options={{ title: 'Vacaciones' }} />
       <Stack.Screen name="Credencial" component={CredencialScreen} options={{ title: 'Credencial digital' }} />
+      <Stack.Screen
+        name="VerificarCredencial"
+        component={VerificarCredencialScreen}
+        options={{ title: 'Verificar credencial' }}
+      />
       <Stack.Screen name="Documentos" component={DocumentosScreen} options={{ title: 'Documentos' }} />
       <Stack.Screen name="Notificaciones" component={NotificacionesScreen} options={{ title: 'Notificaciones' }} />
       <Stack.Screen name="Actividad" component={ActividadScreen} options={{ title: 'Actividad reciente' }} />
