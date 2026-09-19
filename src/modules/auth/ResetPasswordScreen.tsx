@@ -22,7 +22,6 @@ type Props = {
   route: {
     params?: {
       correo?: string;
-      resetToken?: string;
     };
   };
 };
@@ -35,9 +34,8 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
   const styles = getStyles(COLORS, isDark);
 
   const correo = route?.params?.correo || '';
-  const initialToken = route?.params?.resetToken ?? '';
 
-  const [token, setToken] = useState(initialToken);
+  const [token, setToken] = useState('');
   const [nuevaContrasena, setNuevaContrasena] = useState('');
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
   const [loading, setLoading] = useState(false);
