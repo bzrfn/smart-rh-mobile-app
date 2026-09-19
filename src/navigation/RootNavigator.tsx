@@ -37,7 +37,10 @@ export type RootStackParamList = {
   Register: undefined;
   ForgotPassword: undefined;
   ResetPassword: { correo?: string } | undefined;
-  VerifyLoginCode: { correo: string };
+  VerifyLoginCode: {
+    correo: string;
+    challengeId: string;
+  };
   VerifyAccount: { correo: string };
 
   Home: undefined;

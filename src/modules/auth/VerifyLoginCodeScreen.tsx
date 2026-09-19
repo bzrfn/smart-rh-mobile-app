@@ -22,6 +22,7 @@ type Props = {
   route: {
     params?: {
       correo?: string;
+      challengeId?: string;
     };
   };
 };
@@ -30,6 +31,7 @@ export default function VerifyLoginCodeScreen({ navigation, route }: Props) {
   const { setAuth, theme } = useAuth();
 
   const correo = route?.params?.correo || '';
+  const challengeId = route?.params?.challengeId || '';
   const isDark = theme === 'dark';
   const COLORS = getColors(isDark);
   const styles = getStyles(COLORS, isDark);
@@ -40,7 +42,7 @@ export default function VerifyLoginCodeScreen({ navigation, route }: Props) {
   async function onVerify() {
     if (loading) return;
 
-    if (!correo || !codigo.trim()) {
+    if (!correo || !challengeId || !codigo.trim()) {
       Alert.alert('Código requerido', 'Ingresa el código enviado a tu correo.');
       return;
     }
@@ -49,7 +51,7 @@ export default function VerifyLoginCodeScreen({ navigation, route }: Props) {
       setLoading(true);
 
       const { data } = await api.post('/auth/verify-login-code', {
-        correo,
+        challengeId,
         codigo: codigo.trim(),
       });
 

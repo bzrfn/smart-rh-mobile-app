@@ -73,6 +73,14 @@ export default function LoginScreen({ navigation }: Props) {
       }
 
       if (data?.requires2FA) {
+        if (!data?.challengeId) {
+          Alert.alert(
+            'Error',
+            'No se recibió el identificador de seguridad del segundo factor.'
+          );
+          return;
+        }
+
         Alert.alert(
           'Código enviado',
           data?.message ?? 'Se envió un código de acceso a tu correo.',
@@ -82,6 +90,7 @@ export default function LoginScreen({ navigation }: Props) {
               onPress: () =>
                 navigation.navigate('VerifyLoginCode', {
                   correo: data?.correo || correoLimpio,
+                  challengeId: data.challengeId,
                 }),
             },
           ]
