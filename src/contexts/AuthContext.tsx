@@ -48,6 +48,12 @@ const THEME_KEY = '@rrhh_theme';
 
 const Ctx = createContext<CtxType | null>(null);
 
+function isAdminUser(user: User | null | undefined) {
+  return String(user?.role || '')
+    .trim()
+    .toLowerCase() === 'admin';
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State>({
     token: null,
@@ -100,6 +106,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = parsed?.token ?? null;
       const user = parsed?.user ?? null;
 
+        if (!token || !user || isAdminUser(user)) {
+          setAuthToken(null);
+          await AsyncStorage.removeItem(STORAGE_KEY);
+
+          setState({
+            token: null,
+            user: null,
+            permisos: {},
+            ready: true,
+            theme,
+          });
+
+          return;
+        }
+
       setAuthToken(token);
 
       setState({
@@ -134,6 +155,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function setAuth(token: string, user: User) {
+    if (!token || !user || isAdminUser(user)) {
+      setAuthToken(null);
+      await AsyncStorage.removeItem(STORAGE_KEY);
+
+      setState((s) => ({
+        ...s,
+        token: null,
+        user: null,
+        permisos: {},
+        ready: true,
+      }));
+
+      return;
+    }
+
     setAuthToken(token);
 
     await AsyncStorage.setItem(

@@ -22,7 +22,7 @@ type Props = {
 };
 
 export default function LoginScreen({ navigation }: Props) {
-  const { setAuth, theme, toggleTheme } = useAuth();
+  const { theme, toggleTheme } = useAuth();
 
   const isDark = theme === 'dark';
   const COLORS = getColors(isDark);
@@ -98,8 +98,11 @@ export default function LoginScreen({ navigation }: Props) {
         return;
       }
 
-      if (data?.token && data?.user) {
-        await setAuth(data.token, data.user);
+      if (data?.token || data?.user) {
+        Alert.alert(
+          'Verificación requerida',
+          'Por seguridad, debes completar el código 2FA antes de entrar.'
+        );
         return;
       }
 

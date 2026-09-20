@@ -60,6 +60,20 @@ export default function VerifyLoginCodeScreen({ navigation, route }: Props) {
         return;
       }
 
+      const role = String(data.user?.role || '')
+        .trim()
+        .toLowerCase();
+
+      if (role === 'admin') {
+        Alert.alert(
+          'Acceso administrativo no disponible',
+          'Las cuentas administrativas deben ingresar desde el portal web.'
+        );
+
+        navigation.navigate('Login');
+        return;
+      }
+
       await setAuth(data.token, data.user);
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Error de conexión');
