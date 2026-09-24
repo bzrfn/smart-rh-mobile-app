@@ -375,6 +375,17 @@ export default function HomeScreen({ navigation }: Props) {
         lockedReason: 'Vacaciones no habilitadas.',
       },
       {
+        key: 'incapacidades',
+        title: 'Incapacidades',
+        subtitle: 'Solicitudes médicas y seguimiento.',
+        route: 'Incapacidades',
+        accent: 'teal',
+        code: 'IN',
+        badge: 'Nuevo',
+        enabled: true,
+        group: 'trabajo',
+      },
+      {
         key: 'nomina',
         title: 'Nómina',
         subtitle: 'Pagos, periodos y registros.',

@@ -23,6 +23,7 @@ import AsistenciaScreen from '../modules/asistencia/AsistenciaScreen';
 import ContratosScreen from '../modules/contratos/ContratosScreen';
 import NominaScreen from '../modules/nomina/NominaScreen';
 import VacacionesScreen from '../modules/vacaciones/VacacionesScreen';
+import IncapacidadesScreen from '../modules/incapacidades/IncapacidadesScreen';
 import AdminUsuariosScreen from '../modules/admin/AdminUsuariosScreen';
 import CredencialScreen from '../modules/documentos/CredencialScreen';
 import VerificarCredencialScreen from '../modules/documentos/VerificarCredencialScreen';
@@ -49,6 +50,7 @@ export type RootStackParamList = {
   Contratos: undefined;
   Nomina: undefined;
   Vacaciones: undefined;
+  Incapacidades: undefined;
   AdminUsuarios: undefined;
   Credencial: undefined;
   VerificarCredencial: undefined;
@@ -251,6 +253,11 @@ function AppNavigator() {
       <Stack.Screen name="Contratos" component={ContratosScreen} options={{ title: 'Contratos' }} />
       <Stack.Screen name="Nomina" component={NominaScreen} options={{ title: 'Nóminas' }} />
       <Stack.Screen name="Vacaciones" component={VacacionesScreen} options={{ title: 'Vacaciones' }} />
+<Stack.Screen
+  name="Incapacidades"
+  component={IncapacidadesScreen}
+  options={{ title: 'Incapacidades' }}
+/>
       <Stack.Screen name="Credencial" component={CredencialScreen} options={{ title: 'Credencial digital' }} />
       <Stack.Screen
         name="VerificarCredencial"
