@@ -23,8 +23,14 @@ import AsistenciaScreen from '../modules/asistencia/AsistenciaScreen';
 import ContratosScreen from '../modules/contratos/ContratosScreen';
 import NominaScreen from '../modules/nomina/NominaScreen';
 import VacacionesScreen from '../modules/vacaciones/VacacionesScreen';
+import IncapacidadesScreen from '../modules/incapacidades/IncapacidadesScreen';
+import AdminAsistenciaPendientesScreen from '../modules/admin/AdminAsistenciaPendientesScreen';
+import AdminDashboardScreen from '../modules/admin/AdminDashboardScreen';
+import AdminIncapacidadesRevisionScreen from '../modules/admin/AdminIncapacidadesRevisionScreen';
+import AdminPerfilScreen from '../modules/admin/AdminPerfilScreen';
 import AdminUsuariosScreen from '../modules/admin/AdminUsuariosScreen';
 import CredencialScreen from '../modules/documentos/CredencialScreen';
+import VerificarCredencialScreen from '../modules/documentos/VerificarCredencialScreen';
 import DocumentosScreen from '../modules/documentos/DocumentosScreen';
 import NotificacionesScreen from '../modules/notificaciones/NotificacionesScreen';
 import ActividadScreen from '../modules/actividad/ActividadScreen';
@@ -35,18 +41,27 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
-  ResetPassword: { correo?: string; resetToken?: string } | undefined;
-  VerifyLoginCode: { correo: string };
+  ResetPassword: { correo?: string } | undefined;
+  VerifyLoginCode: {
+    correo: string;
+    challengeId: string;
+  };
   VerifyAccount: { correo: string };
 
   Home: undefined;
+  AdminDashboard: undefined;
+  AdminAsistenciaPendientes: undefined;
+  AdminIncapacidadesRevision: undefined;
+  AdminPerfil: undefined;
   QrScan: undefined;
   Asistencia: undefined;
   Contratos: undefined;
   Nomina: undefined;
   Vacaciones: undefined;
+  Incapacidades: undefined;
   AdminUsuarios: undefined;
   Credencial: undefined;
+  VerificarCredencial: undefined;
   Documentos: undefined;
   Notificaciones: undefined;
   Actividad: undefined;
@@ -55,6 +70,10 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+function isAdminRole(role?: string | null) {
+  return String(role || '').trim().toLowerCase() === 'admin';
+}
 
 function getColors(isDark: boolean) {
   return {
@@ -86,7 +105,7 @@ function buildNavTheme(isDark: boolean): Theme {
 }
 
 export default function RootNavigator() {
-  const { token, ready, theme } = useAuth();
+  const { token, ready, theme, user } = useAuth();
 
   const isDark = theme === 'dark';
   const colors = getColors(isDark);
@@ -106,7 +125,15 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer theme={buildNavTheme(isDark)}>
-      {token ? <AppNavigator /> : <AuthNavigator />}
+      {token ? (
+        isAdminRole(user?.role) ? (
+          <AdminNavigator />
+        ) : (
+          <EmployeeNavigator />
+        )
+      ) : (
+        <AuthNavigator />
+      )}
     </NavigationContainer>
   );
 }
@@ -200,7 +227,7 @@ function AuthNavigator() {
   );
 }
 
-function AppNavigator() {
+function EmployeeNavigator() {
   const { theme } = useAuth();
   const isDark = theme === 'dark';
   const colors = getColors(isDark);
@@ -225,7 +252,7 @@ function AppNavigator() {
         contentStyle: {
           backgroundColor: colors.background,
         },
-        animation: 'slide_from_right',
+        animation: 'fade',
       }}
     >
       <Stack.Screen
@@ -246,13 +273,91 @@ function AppNavigator() {
       <Stack.Screen name="Contratos" component={ContratosScreen} options={{ title: 'Contratos' }} />
       <Stack.Screen name="Nomina" component={NominaScreen} options={{ title: 'Nóminas' }} />
       <Stack.Screen name="Vacaciones" component={VacacionesScreen} options={{ title: 'Vacaciones' }} />
+<Stack.Screen
+  name="Incapacidades"
+  component={IncapacidadesScreen}
+  options={{ title: 'Incapacidades' }}
+/>
       <Stack.Screen name="Credencial" component={CredencialScreen} options={{ title: 'Credencial digital' }} />
       <Stack.Screen name="Documentos" component={DocumentosScreen} options={{ title: 'Documentos' }} />
       <Stack.Screen name="Notificaciones" component={NotificacionesScreen} options={{ title: 'Notificaciones' }} />
       <Stack.Screen name="Actividad" component={ActividadScreen} options={{ title: 'Actividad reciente' }} />
       <Stack.Screen name="Perfil" component={PerfilScreen} options={{ title: 'Perfil del empleado' }} />
       <Stack.Screen name="Soporte" component={SoporteScreen} options={{ title: 'Soporte' }} />
-      <Stack.Screen name="AdminUsuarios" component={AdminUsuariosScreen} options={{ title: 'Administrar accesos' }} />
+    </Stack.Navigator>
+  );
+}
+
+function AdminNavigator() {
+  const { theme } = useAuth();
+  const isDark = theme === 'dark';
+  const colors = getColors(isDark);
+
+  return (
+    <Stack.Navigator
+      initialRouteName="AdminDashboard"
+      screenOptions={{
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: colors.surface,
+        },
+        headerShadowVisible: false,
+        headerTintColor: colors.primary,
+        headerTitleStyle: {
+          fontWeight: '900',
+          color: colors.primary,
+          fontSize: 20,
+        },
+        headerBackTitleVisible: false,
+        headerTitleAlign: 'center',
+        contentStyle: {
+          backgroundColor: colors.background,
+        },
+        animation: 'fade',
+      }}
+    >
+      <Stack.Screen
+        name="AdminDashboard"
+        component={AdminDashboardScreen}
+        options={{
+          title: 'Panel admin',
+          headerTitleStyle: {
+            fontWeight: '900',
+            color: colors.primary,
+            fontSize: 22,
+          },
+        }}
+      />
+      <Stack.Screen
+        name="VerificarCredencial"
+        component={VerificarCredencialScreen}
+        options={{ title: 'Verificar credencial' }}
+      />
+      <Stack.Screen
+        name="AdminUsuarios"
+        component={AdminUsuariosScreen}
+        options={{ title: 'Administrar accesos' }}
+      />
+      <Stack.Screen
+        name="AdminAsistenciaPendientes"
+        component={AdminAsistenciaPendientesScreen}
+        options={{ title: 'Pendientes de asistencia' }}
+      />
+      <Stack.Screen
+        name="AdminIncapacidadesRevision"
+        component={AdminIncapacidadesRevisionScreen}
+        options={{ title: 'Incapacidades por revisar' }}
+      />
+      <Stack.Screen
+        name="Notificaciones"
+        component={NotificacionesScreen}
+        options={{ title: 'Notificaciones admin' }}
+      />
+      <Stack.Screen
+        name="AdminPerfil"
+        component={AdminPerfilScreen}
+        options={{ title: 'Perfil admin' }}
+      />
     </Stack.Navigator>
   );
 }

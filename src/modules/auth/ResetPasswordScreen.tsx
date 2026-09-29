@@ -22,7 +22,6 @@ type Props = {
   route: {
     params?: {
       correo?: string;
-      resetToken?: string;
     };
   };
 };
@@ -35,9 +34,8 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
   const styles = getStyles(COLORS, isDark);
 
   const correo = route?.params?.correo || '';
-  const initialToken = route?.params?.resetToken ?? '';
 
-  const [token, setToken] = useState(initialToken);
+  const [codigo, setCodigo] = useState('');
   const [nuevaContrasena, setNuevaContrasena] = useState('');
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,8 +43,8 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
   const onReset = async () => {
     if (loading) return;
 
-    if (!token.trim() || !nuevaContrasena.trim() || !confirmarContrasena.trim()) {
-      Alert.alert('Campos requeridos', 'Ingresa código, nueva contraseña y confirmación.');
+    if (!correo.trim() || !codigo.trim() || !nuevaContrasena.trim() || !confirmarContrasena.trim()) {
+      Alert.alert('Campos requeridos', 'Falta el correo de recuperación, código o nueva contraseña.');
       return;
     }
 
@@ -59,7 +57,8 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
       setLoading(true);
 
       const { data } = await api.post('/auth/reset-password', {
-        token: token.trim(),
+        correo: correo.trim().toLowerCase(),
+        codigo: codigo.trim(),
         nuevaContrasena,
       });
 
@@ -137,8 +136,8 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Código</Text>
                   <TextInput
-                    value={token}
-                    onChangeText={(text) => setToken(text.replace(/[^0-9]/g, '').slice(0, 6))}
+                    value={codigo}
+                    onChangeText={(text) => setCodigo(text.replace(/[^0-9]/g, '').slice(0, 6))}
                     placeholder="000000"
                     placeholderTextColor={COLORS.placeholder}
                     keyboardType="number-pad"

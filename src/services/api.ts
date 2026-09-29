@@ -1,8 +1,14 @@
 import axios from 'axios';
 
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  'http://192.168.3.73:4000';
+const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+
+if (!configuredApiUrl) {
+  throw new Error(
+    'EXPO_PUBLIC_API_URL no está configurada. Define la URL del backend en el archivo .env.'
+  );
+}
+
+export const API_BASE_URL = configuredApiUrl.replace(/\/+$/, '');
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

@@ -54,8 +54,9 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
       }
 
       Alert.alert(
-        'Código enviado',
-        data?.message ?? `Se envió un código a tu correo. Expira en ${data?.expiresInMinutes || 15} minutos.`,
+        'Solicitud recibida',
+        data?.message ??
+          'Si existe una cuenta asociada a ese correo, se enviará un código de recuperación.',
         [
           {
             text: 'Continuar',

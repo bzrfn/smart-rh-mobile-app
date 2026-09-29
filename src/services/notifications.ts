@@ -24,7 +24,6 @@ export async function configureNotifications() {
     await Notifications.setNotificationChannelAsync('asistencia', {
       name: 'Recordatorios de asistencia',
       importance: Notifications.AndroidImportance.HIGH,
-      sound: 'default',
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#22B8B0',
     });
@@ -54,7 +53,7 @@ export async function showLocalNotificationOnce(params: {
     content: {
       title: params.title,
       body: params.body,
-      sound: 'default',
+      sound: Platform.OS === 'android' ? true : 'default',
       data: params.data ?? {},
     },
     trigger: null,

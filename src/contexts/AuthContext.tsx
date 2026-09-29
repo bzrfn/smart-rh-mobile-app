@@ -48,6 +48,12 @@ const THEME_KEY = '@rrhh_theme';
 
 const Ctx = createContext<CtxType | null>(null);
 
+function isAdminUser(user: User | null | undefined) {
+  return String(user?.role || '')
+    .trim()
+    .toLowerCase() === 'admin';
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State>({
     token: null,
@@ -100,17 +106,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = parsed?.token ?? null;
       const user = parsed?.user ?? null;
 
+        if (!token || !user) {
+          setAuthToken(null);
+          await AsyncStorage.removeItem(STORAGE_KEY);
+
+          setState({
+            token: null,
+            user: null,
+            permisos: {},
+            ready: true,
+            theme,
+          });
+
+          return;
+        }
+
       setAuthToken(token);
+
+      const isAdmin = isAdminUser(user);
 
       setState({
         token,
         user,
         permisos: {},
-        ready: false,
+        ready: isAdmin,
         theme,
       });
 
-      if (token) {
+      if (token && !isAdmin) {
         await loadPermisos();
       }
 
@@ -134,7 +157,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function setAuth(token: string, user: User) {
+    if (!token || !user) {
+      setAuthToken(null);
+      await AsyncStorage.removeItem(STORAGE_KEY);
+
+      setState((s) => ({
+        ...s,
+        token: null,
+        user: null,
+        permisos: {},
+        ready: true,
+      }));
+
+      return;
+    }
+
     setAuthToken(token);
+
+    const isAdmin = isAdminUser(user);
 
     await AsyncStorage.setItem(
       STORAGE_KEY,
@@ -149,10 +189,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       token,
       user,
       permisos: {},
-      ready: false,
+      ready: isAdmin,
     }));
 
-    await loadPermisos();
+    if (!isAdmin) {
+      await loadPermisos();
+    }
 
     setState((s) => ({
       ...s,

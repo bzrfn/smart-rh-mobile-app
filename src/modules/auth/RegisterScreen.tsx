@@ -22,7 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 type Props = { navigation: any };
 
 export default function RegisterScreen({ navigation }: Props) {
-  const { setAuth, theme } = useAuth();
+  const { theme } = useAuth();
 
   const isDark = theme === 'dark';
   const COLORS = getColors(isDark);
@@ -115,13 +115,17 @@ export default function RegisterScreen({ navigation }: Props) {
         return;
       }
 
-      if (data?.token && data?.user) {
-        const user = {
-          ...data.user,
-          foto_perfil_url: data?.foto_perfil_url || data?.user?.foto_perfil_url,
-        };
-
-        await setAuth(data.token, user);
+      if (data?.token || data?.user) {
+        Alert.alert(
+          'Cuenta creada',
+          'La cuenta fue creada. Inicia sesión para completar el código 2FA antes de entrar.',
+          [
+            {
+              text: 'Ir al login',
+              onPress: () => navigation.navigate('Login'),
+            },
+          ]
+        );
         return;
       }
 

@@ -37,25 +37,30 @@ const DEFAULT_PERMISOS: Permisos = {
   vacaciones: false,
 };
 
-const COLORS = {
-  background: '#F4F7FB',
-  card: '#FFFFFF',
-  cardSoft: '#F9FBFD',
-  primary: '#0A57A4',
-  primaryDark: '#084785',
-  primarySoft: 'rgba(10,87,164,0.10)',
-  teal: '#22B8B0',
-  tealSoft: '#67D5CC',
-  tealBg: 'rgba(34,184,176,0.12)',
-  text: '#0F172A',
-  textMuted: '#5B6B81',
-  border: '#D9E1EC',
-  danger: '#D64545',
-  dangerBg: 'rgba(214,69,69,0.12)',
-};
+function getColors(isDark: boolean) {
+  return {
+    background: isDark ? '#07111F' : '#F4F7FB',
+    card: isDark ? '#0F1B2D' : '#FFFFFF',
+    cardSoft: isDark ? '#111F33' : '#F9FBFD',
+    primary: isDark ? '#38BDF8' : '#0A57A4',
+    primarySoft: isDark ? 'rgba(56,189,248,0.14)' : 'rgba(10,87,164,0.10)',
+    teal: isDark ? '#2DD4BF' : '#22B8B0',
+    tealSoft: isDark ? '#14B8A6' : '#67D5CC',
+    tealBg: isDark ? 'rgba(45,212,191,0.14)' : 'rgba(34,184,176,0.12)',
+    text: isDark ? '#F8FAFC' : '#0F172A',
+    textMuted: isDark ? '#9FB0C4' : '#5B6B81',
+    border: isDark ? '#26364D' : '#D9E1EC',
+    danger: isDark ? '#FCA5A5' : '#D64545',
+    dangerBg: isDark ? 'rgba(248,113,113,0.12)' : 'rgba(214,69,69,0.12)',
+  };
+}
 
 export default function AdminUsuariosScreen() {
-  const { token, user } = useAuth();
+  const { token, user, theme } = useAuth();
+
+  const isDark = theme === 'dark';
+  const COLORS = getColors(isDark);
+  const styles = getStyles(isDark);
 
   const [users, setUsers] = useState<UserItem[]>([]);
   const [permisosMap, setPermisosMap] = useState<Record<number, Permisos>>({});
@@ -237,10 +242,10 @@ export default function AdminUsuariosScreen() {
           </Text>
 
           <View style={styles.heroStatsGrid}>
-            <HeroStatCard value={String(users.length)} label="Usuarios" />
-            <HeroStatCard value={String(activeUsers)} label="Activos" />
-            <HeroStatCard value={String(adminUsers)} label="Admins" />
-            <HeroStatCard value="4" label="Módulos" />
+            <HeroStatCard value={String(users.length)} label="Usuarios" styles={styles} />
+            <HeroStatCard value={String(activeUsers)} label="Activos" styles={styles} />
+            <HeroStatCard value={String(adminUsers)} label="Admins" styles={styles} />
+            <HeroStatCard value="4" label="Módulos" styles={styles} />
           </View>
         </View>
 
@@ -345,6 +350,8 @@ export default function AdminUsuariosScreen() {
                           value={permisos.asistencia}
                           disabled={savingKey === `${u.id}-asistencia`}
                           onValueChange={() => onToggle(u.id, 'asistencia')}
+                          styles={styles}
+                          colors={COLORS}
                         />
 
                         <PermissionRow
@@ -353,6 +360,8 @@ export default function AdminUsuariosScreen() {
                           value={permisos.contratos}
                           disabled={savingKey === `${u.id}-contratos`}
                           onValueChange={() => onToggle(u.id, 'contratos')}
+                          styles={styles}
+                          colors={COLORS}
                         />
 
                         <PermissionRow
@@ -361,6 +370,8 @@ export default function AdminUsuariosScreen() {
                           value={permisos.nomina}
                           disabled={savingKey === `${u.id}-nomina`}
                           onValueChange={() => onToggle(u.id, 'nomina')}
+                          styles={styles}
+                          colors={COLORS}
                         />
 
                         <PermissionRow
@@ -369,6 +380,8 @@ export default function AdminUsuariosScreen() {
                           value={permisos.vacaciones}
                           disabled={savingKey === `${u.id}-vacaciones`}
                           onValueChange={() => onToggle(u.id, 'vacaciones')}
+                          styles={styles}
+                          colors={COLORS}
                         />
                       </>
                     )}
@@ -382,7 +395,15 @@ export default function AdminUsuariosScreen() {
   );
 }
 
-function HeroStatCard({ value, label }: { value: string; label: string }) {
+function HeroStatCard({
+  value,
+  label,
+  styles,
+}: {
+  value: string;
+  label: string;
+  styles: any;
+}) {
   return (
     <View style={styles.heroStatCard}>
       <Text style={styles.heroStatValue}>{value}</Text>
@@ -397,12 +418,16 @@ function PermissionRow({
   value,
   disabled,
   onValueChange,
+  styles,
+  colors,
 }: {
   label: string;
   hint: string;
   value: boolean;
   disabled?: boolean;
   onValueChange: () => void;
+  styles: any;
+  colors: ReturnType<typeof getColors>;
 }) {
   return (
     <View style={styles.permissionRow}>
@@ -425,7 +450,7 @@ function PermissionRow({
           value={value}
           onValueChange={onValueChange}
           disabled={disabled}
-          trackColor={{ false: COLORS.border, true: COLORS.teal }}
+          trackColor={{ false: colors.border, true: colors.teal }}
           thumbColor="#FFFFFF"
         />
       </View>
@@ -433,7 +458,10 @@ function PermissionRow({
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(isDark: boolean) {
+  const COLORS = getColors(isDark);
+
+  return StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -453,7 +481,7 @@ const styles = StyleSheet.create({
     height: 230,
     borderRadius: 115,
     backgroundColor: COLORS.primary,
-    opacity: 0.08,
+    opacity: isDark ? 0.16 : 0.08,
   },
   shapeTopLeftSmall: {
     position: 'absolute',
@@ -463,7 +491,7 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 55,
     backgroundColor: COLORS.teal,
-    opacity: 0.12,
+    opacity: isDark ? 0.18 : 0.12,
   },
   shapeBottomRightLarge: {
     position: 'absolute',
@@ -473,7 +501,7 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 110,
     backgroundColor: COLORS.primary,
-    opacity: 0.07,
+    opacity: isDark ? 0.14 : 0.07,
   },
   shapeBottomRightSmall: {
     position: 'absolute',
@@ -483,7 +511,7 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: 45,
     backgroundColor: COLORS.tealSoft,
-    opacity: 0.18,
+    opacity: isDark ? 0.2 : 0.18,
   },
 
   heroCard: {
@@ -497,7 +525,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
     borderWidth: 1,
-    borderColor: 'rgba(10,87,164,0.06)',
+    borderColor: COLORS.border,
     zIndex: 2,
   },
   heroTopRow: {
@@ -524,7 +552,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   heroBadgeText: {
-    color: '#0F766E',
+    color: COLORS.teal,
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.8,
@@ -563,7 +591,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(10,87,164,0.08)',
+    borderColor: COLORS.border,
   },
   heroStatValue: {
     fontSize: 22,
@@ -622,7 +650,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: {
-    color: '#B42318',
+    color: COLORS.danger,
     fontWeight: '700',
   },
 
@@ -693,7 +721,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   adminPill: {
-    backgroundColor: 'rgba(10,87,164,0.12)',
+    backgroundColor: COLORS.primarySoft,
   },
   adminPillText: {
     color: COLORS.primary,
@@ -702,19 +730,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.tealBg,
   },
   employeePillText: {
-    color: '#0F766E',
+    color: COLORS.teal,
   },
   activePill: {
     backgroundColor: COLORS.tealBg,
   },
   activePillText: {
-    color: '#0F766E',
+    color: COLORS.teal,
   },
   inactivePill: {
     backgroundColor: COLORS.dangerBg,
   },
   inactivePillText: {
-    color: '#B42318',
+    color: COLORS.danger,
   },
 
   expandBadge: {
@@ -734,10 +762,10 @@ const styles = StyleSheet.create({
 
   permissionsBox: {
     borderTopWidth: 1,
-    borderTopColor: '#E8EEF5',
+    borderTopColor: COLORS.border,
     paddingHorizontal: 18,
     paddingVertical: 14,
-    backgroundColor: '#FBFCFE',
+    backgroundColor: COLORS.cardSoft,
   },
   permissionsHeader: {
     marginBottom: 8,
@@ -766,7 +794,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#EDF2F7',
+    borderBottomColor: COLORS.border,
   },
   permissionTextBox: {
     flex: 1,
@@ -792,9 +820,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   permissionStateOn: {
-    color: '#0F766E',
+    color: COLORS.teal,
   },
   permissionStateOff: {
-    color: '#B42318',
+    color: COLORS.danger,
   },
-});
+  });
+}

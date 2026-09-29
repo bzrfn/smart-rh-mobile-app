@@ -27,7 +27,7 @@ type Props = {
 };
 
 export default function VerifyAccountScreen({ navigation, route }: Props) {
-  const { setAuth, theme } = useAuth();
+  const { theme } = useAuth();
 
   const correo = route?.params?.correo || '';
   const isDark = theme === 'dark';
@@ -53,13 +53,26 @@ export default function VerifyAccountScreen({ navigation, route }: Props) {
         codigo: codigo.trim(),
       });
 
-      if (!data?.ok || !data?.token || !data?.user) {
-        Alert.alert('Error', data?.message ?? 'No se pudo confirmar la cuenta.');
+      if (!data?.ok || !data?.requiresLogin) {
+        Alert.alert(
+          'Error',
+          data?.message ?? 'No se pudo confirmar la cuenta.'
+        );
         return;
       }
 
-      Alert.alert('Cuenta confirmada', data?.message ?? 'Tu cuenta fue activada correctamente.');
-      await setAuth(data.token, data.user);
+      Alert.alert(
+        'Cuenta confirmada',
+        data?.message ??
+          'Tu cuenta fue activada correctamente. Inicia sesión para continuar.',
+        [
+          {
+            text: 'Ir al login',
+            onPress: () =>
+              navigation.navigate('Login'),
+          },
+        ]
+      );
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Error de conexión');
     } finally {

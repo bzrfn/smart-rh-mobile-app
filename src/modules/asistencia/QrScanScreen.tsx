@@ -16,7 +16,6 @@ import {
   CameraView,
   useCameraPermissions,
 } from 'expo-camera';
-import { Audio } from 'expo-av';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -48,7 +47,6 @@ export default function QrScanScreen({ navigation }: Props) {
   const [statusTitle, setStatusTitle] = useState('Listo para escanear');
   const [statusType, setStatusType] = useState<StatusType>('idle');
 
-  const soundRef = useRef<Audio.Sound | null>(null);
   const scanLockRef = useRef(false);
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -58,23 +56,9 @@ export default function QrScanScreen({ navigation }: Props) {
   const scanLineAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const loadSound = async () => {
-      try {
-        const { sound } = await Audio.Sound.createAsync(
-          require('../../../assets/sounds/success.wav')
-        );
-        soundRef.current = sound;
-      } catch (error) {
-        console.log('No se pudo cargar el sonido:', error);
-      }
-    };
-
-    loadSound();
-
     return () => {
       if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
       if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
-      soundRef.current?.unloadAsync();
     };
   }, []);
 
@@ -111,9 +95,8 @@ export default function QrScanScreen({ navigation }: Props) {
   async function playSuccessFeedback() {
     try {
       Vibration.vibrate(180);
-      await soundRef.current?.replayAsync();
     } catch (error) {
-      console.log('No se pudo reproducir el sonido:', error);
+      console.log('No se pudo ejecutar la vibración:', error);
     }
   }
 
@@ -465,11 +448,11 @@ function getStyles(isDark: boolean, frameSize: number) {
       flex: 1,
     },
     darkLayer: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: COLORS.overlay,
     },
     overlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: 'space-between',
     },
 
@@ -568,7 +551,7 @@ function getStyles(isDark: boolean, frameSize: number) {
       elevation: 8,
     },
     centerHint: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -586,7 +569,7 @@ function getStyles(isDark: boolean, frameSize: number) {
     },
 
     processingOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: 'rgba(7,17,31,0.72)',
       alignItems: 'center',
       justifyContent: 'center',
@@ -599,7 +582,7 @@ function getStyles(isDark: boolean, frameSize: number) {
     },
 
     successOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: 'rgba(7,17,31,0.64)',
       alignItems: 'center',
       justifyContent: 'center',
