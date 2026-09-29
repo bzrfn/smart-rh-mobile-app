@@ -426,14 +426,18 @@ export default function AdminIncapacidadesRevisionScreen() {
                     onPress={() => openReviewAction(item, 'aprobada')}
                     disabled={isSubmitting}
                   >
-                    <Text style={styles.actionButtonText}>Aprobar</Text>
+                    <Text style={[styles.actionButtonText, styles.approveActionText]}>
+                      Aprobar
+                    </Text>
                   </Pressable>
                   <Pressable
                     style={[styles.actionButton, styles.rejectButton]}
                     onPress={() => openReviewAction(item, 'rechazada')}
                     disabled={isSubmitting}
                   >
-                    <Text style={styles.actionButtonText}>Rechazar</Text>
+                    <Text style={[styles.actionButtonText, styles.rejectActionText]}>
+                      Rechazar
+                    </Text>
                   </Pressable>
                 </View>
               )}
@@ -508,10 +512,12 @@ function getColors(isDark: boolean) {
     primary: isDark ? '#38BDF8' : '#0A57A4',
     primarySoft: isDark ? 'rgba(56,189,248,0.14)' : 'rgba(10,87,164,0.10)',
     teal: isDark ? '#2DD4BF' : '#22B8B0',
+    tealStrong: isDark ? '#14B8A6' : '#0F766E',
     tealBg: isDark ? 'rgba(45,212,191,0.14)' : 'rgba(34,184,176,0.12)',
     gold: isDark ? '#FACC15' : '#B7791F',
     goldBg: isDark ? 'rgba(250,204,21,0.14)' : 'rgba(183,121,31,0.12)',
     danger: isDark ? '#FCA5A5' : '#B42318',
+    dangerStrong: isDark ? '#EF4444' : '#B42318',
     dangerBg: isDark ? 'rgba(248,113,113,0.12)' : 'rgba(180,35,24,0.08)',
     text: isDark ? '#F8FAFC' : '#0F172A',
     muted: isDark ? '#9FB0C4' : '#5B6B81',
@@ -798,17 +804,25 @@ function getStyles(isDark: boolean) {
       borderRadius: 14,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 1,
     },
     approveButton: {
-      backgroundColor: COLORS.teal,
+      backgroundColor: COLORS.tealBg,
+      borderColor: COLORS.teal,
     },
     rejectButton: {
-      backgroundColor: COLORS.danger,
+      backgroundColor: COLORS.dangerBg,
+      borderColor: COLORS.danger,
     },
     actionButtonText: {
-      color: '#FFFFFF',
       fontSize: 13,
       fontWeight: '900',
+    },
+    approveActionText: {
+      color: COLORS.tealStrong,
+    },
+    rejectActionText: {
+      color: COLORS.dangerStrong,
     },
     actionPanel: {
       marginTop: 14,
@@ -863,10 +877,10 @@ function getStyles(isDark: boolean) {
       justifyContent: 'center',
     },
     submitApproveButton: {
-      backgroundColor: COLORS.teal,
+      backgroundColor: COLORS.tealStrong,
     },
     submitDangerButton: {
-      backgroundColor: COLORS.danger,
+      backgroundColor: COLORS.dangerStrong,
     },
     submitButtonText: {
       color: '#FFFFFF',
