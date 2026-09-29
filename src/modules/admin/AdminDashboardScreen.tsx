@@ -44,7 +44,11 @@ function countIncapacidadesRevision(value: any) {
   const list = Array.isArray(value?.incapacidades) ? value.incapacidades : [];
   return list.filter((item: any) => {
     const estado = String(item?.estado || '').trim().toLowerCase();
-    const revision = String(item?.analisis?.estado_revision || '').trim().toLowerCase();
+    const revision = String(
+      item?.validacion_automatica?.estado_validacion || ''
+    )
+      .trim()
+      .toLowerCase();
 
     return estado === 'pendiente' || revision === 'requiere_revision';
   }).length;
@@ -248,7 +252,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               title="Pendientes de asistencia"
               detail={`${summary.asistenciaPendiente} registros pendientes.`}
               accent={summary.asistenciaPendiente > 0 ? 'gold' : 'blue'}
-              onPress={() => loadSummary(true)}
+              onPress={() => navigation.navigate('AdminAsistenciaPendientes')}
               styles={styles}
             />
             <ActionCard

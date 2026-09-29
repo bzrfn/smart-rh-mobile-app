@@ -24,6 +24,7 @@ import ContratosScreen from '../modules/contratos/ContratosScreen';
 import NominaScreen from '../modules/nomina/NominaScreen';
 import VacacionesScreen from '../modules/vacaciones/VacacionesScreen';
 import IncapacidadesScreen from '../modules/incapacidades/IncapacidadesScreen';
+import AdminAsistenciaPendientesScreen from '../modules/admin/AdminAsistenciaPendientesScreen';
 import AdminDashboardScreen from '../modules/admin/AdminDashboardScreen';
 import AdminIncapacidadesRevisionScreen from '../modules/admin/AdminIncapacidadesRevisionScreen';
 import AdminPerfilScreen from '../modules/admin/AdminPerfilScreen';
@@ -49,6 +50,7 @@ export type RootStackParamList = {
 
   Home: undefined;
   AdminDashboard: undefined;
+  AdminAsistenciaPendientes: undefined;
   AdminIncapacidadesRevision: undefined;
   AdminPerfil: undefined;
   QrScan: undefined;
@@ -335,6 +337,11 @@ function AdminNavigator() {
         name="AdminUsuarios"
         component={AdminUsuariosScreen}
         options={{ title: 'Administrar accesos' }}
+      />
+      <Stack.Screen
+        name="AdminAsistenciaPendientes"
+        component={AdminAsistenciaPendientesScreen}
+        options={{ title: 'Pendientes de asistencia' }}
       />
       <Stack.Screen
         name="AdminIncapacidadesRevision"
