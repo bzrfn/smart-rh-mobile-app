@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +27,8 @@ type AsistenciaPendiente = {
   duracion_minima_aplicada_minutos?: number | null;
   duracion_registrada_segundos?: number | string | null;
 };
+
+type AttendanceDecision = 'approve' | 'reject';
 
 function formatDate(value?: string | null) {
   if (!value) return 'Sin fecha';
@@ -74,6 +79,13 @@ function getStatusLabel(value?: string | null) {
   return status || 'Pendiente';
 }
 
+function requiresReason(item: AsistenciaPendiente, decision: AttendanceDecision) {
+  return (
+    decision === 'reject' ||
+    String(item.estado || '') === 'INVALIDA_PENDIENTE_REVISION'
+  );
+}
+
 export default function AdminAsistenciaPendientesScreen() {
   const { theme } = useAuth();
 
@@ -85,6 +97,10 @@ export default function AdminAsistenciaPendientesScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedDecision, setSelectedDecision] = useState<AttendanceDecision | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [submittingId, setSubmittingId] = useState<number | null>(null);
 
   const reviewCount = useMemo(
     () =>
@@ -119,6 +135,58 @@ export default function AdminAsistenciaPendientesScreen() {
   useEffect(() => {
     loadItems();
   }, [loadItems]);
+
+  function openReviewAction(item: AsistenciaPendiente, decision: AttendanceDecision) {
+    setSelectedId(item.id);
+    setSelectedDecision(decision);
+    setReviewNote('');
+  }
+
+  function closeReviewAction() {
+    setSelectedId(null);
+    setSelectedDecision(null);
+    setReviewNote('');
+  }
+
+  async function submitReviewAction(item: AsistenciaPendiente) {
+    if (!selectedDecision || selectedId !== item.id) return;
+
+    const note = reviewNote.trim();
+
+    if (requiresReason(item, selectedDecision) && !note) {
+      Alert.alert(
+        'Motivo requerido',
+        'Agrega una observación administrativa para cerrar este pendiente.'
+      );
+      return;
+    }
+
+    const endpointAction = selectedDecision === 'approve' ? 'approve' : 'reject';
+
+    try {
+      setSubmittingId(item.id);
+
+      const { data } = await api.patch(`/asistencia/${item.id}/${endpointAction}`, {
+        motivo: note || 'Revisión móvil administrativa.',
+      });
+
+      closeReviewAction();
+      await loadItems(true);
+
+      Alert.alert(
+        'Asistencia actualizada',
+        data?.message || 'El pendiente de asistencia se actualizó correctamente.'
+      );
+    } catch (e: any) {
+      Alert.alert(
+        'No se pudo actualizar',
+        e?.response?.data?.message ||
+          'Intenta nuevamente o revisa la conexión con el backend.'
+      );
+    } finally {
+      setSubmittingId(null);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -179,51 +247,123 @@ export default function AdminAsistenciaPendientesScreen() {
           </View>
         ) : null}
 
-        {items.map(item => (
-          <View key={item.id} style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardCode}>
-                <Text style={styles.cardCodeText}>AS</Text>
-              </View>
-              <View style={styles.cardTitleBox}>
-                <Text style={styles.cardTitle}>{getEmployeeName(item)}</Text>
-                <Text style={styles.cardSubtitle}>
-                  {item.correo || `Usuario #${item.usuario_id || '-'}`}
-                </Text>
-              </View>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusBadgeText}>
-                  {getStatusLabel(item.estado)}
-                </Text>
-              </View>
-            </View>
+        {items.map(item => {
+          const isActionOpen = selectedId === item.id && selectedDecision;
+          const isSubmitting = submittingId === item.id;
+          const noteIsRequired = selectedDecision
+            ? requiresReason(item, selectedDecision)
+            : false;
 
-            <View style={styles.metaGrid}>
-              <InfoBox label="Fecha" value={formatDate(item.fecha)} styles={styles} />
-              <InfoBox
-                label="Entrada"
-                value={formatTime(item.hora_entrada)}
-                styles={styles}
-              />
-              <InfoBox
-                label="Salida"
-                value={formatTime(item.hora_salida)}
-                styles={styles}
-              />
-            </View>
+          return (
+            <View key={item.id} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardCode}>
+                  <Text style={styles.cardCodeText}>AS</Text>
+                </View>
+                <View style={styles.cardTitleBox}>
+                  <Text style={styles.cardTitle}>{getEmployeeName(item)}</Text>
+                  <Text style={styles.cardSubtitle}>
+                    {item.correo || `Usuario #${item.usuario_id || '-'}`}
+                  </Text>
+                </View>
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusBadgeText}>
+                    {getStatusLabel(item.estado)}
+                  </Text>
+                </View>
+              </View>
 
-            <View style={styles.detailBox}>
-              <Text style={styles.detailTitle}>Detalle del registro</Text>
-              <Text style={styles.detailText}>
-                Duración registrada: {formatDuration(item.duracion_registrada_segundos)}
-              </Text>
-              <Text style={styles.detailText}>
-                Mínimo aplicado: {item.duracion_minima_aplicada_minutos ?? '-'} min
-              </Text>
-              <Text style={styles.detailText}>Folio de asistencia #{item.id}</Text>
+              <View style={styles.metaGrid}>
+                <InfoBox label="Fecha" value={formatDate(item.fecha)} styles={styles} />
+                <InfoBox
+                  label="Entrada"
+                  value={formatTime(item.hora_entrada)}
+                  styles={styles}
+                />
+                <InfoBox
+                  label="Salida"
+                  value={formatTime(item.hora_salida)}
+                  styles={styles}
+                />
+              </View>
+
+              <View style={styles.detailBox}>
+                <Text style={styles.detailTitle}>Detalle del registro</Text>
+                <Text style={styles.detailText}>
+                  Duración registrada: {formatDuration(item.duracion_registrada_segundos)}
+                </Text>
+                <Text style={styles.detailText}>
+                  Mínimo aplicado: {item.duracion_minima_aplicada_minutos ?? '-'} min
+                </Text>
+                <Text style={styles.detailText}>Folio de asistencia #{item.id}</Text>
+              </View>
+
+              {isActionOpen ? (
+                <View style={styles.actionPanel}>
+                  <Text style={styles.actionPanelTitle}>
+                    {selectedDecision === 'approve'
+                      ? 'Aprobar asistencia'
+                      : 'Rechazar asistencia'}
+                  </Text>
+                  <TextInput
+                    value={reviewNote}
+                    onChangeText={setReviewNote}
+                    placeholder={
+                      noteIsRequired
+                        ? 'Motivo administrativo requerido'
+                        : 'Observación administrativa opcional'
+                    }
+                    placeholderTextColor={colors.muted}
+                    multiline
+                    style={styles.noteInput}
+                    editable={!isSubmitting}
+                  />
+                  <View style={styles.actionPanelFooter}>
+                    <Pressable
+                      style={styles.cancelButton}
+                      onPress={closeReviewAction}
+                      disabled={isSubmitting}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancelar</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[
+                        styles.submitButton,
+                        selectedDecision === 'reject'
+                          ? styles.submitDangerButton
+                          : styles.submitApproveButton,
+                        isSubmitting && styles.disabledButton,
+                      ]}
+                      onPress={() => submitReviewAction(item)}
+                      disabled={isSubmitting}
+                    >
+                      <Text style={styles.submitButtonText}>
+                        {isSubmitting ? 'Guardando...' : 'Confirmar'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.actionRow}>
+                  <Pressable
+                    style={[styles.actionButton, styles.approveButton]}
+                    onPress={() => openReviewAction(item, 'approve')}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={styles.actionButtonText}>Aprobar</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionButton, styles.rejectButton]}
+                    onPress={() => openReviewAction(item, 'reject')}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={styles.actionButtonText}>Rechazar</Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
@@ -480,6 +620,95 @@ function getStyles(isDark: boolean) {
       fontSize: 12,
       lineHeight: 18,
       fontWeight: '700',
+    },
+    actionRow: {
+      marginTop: 14,
+      flexDirection: 'row',
+      gap: 10,
+    },
+    actionButton: {
+      flex: 1,
+      minHeight: 44,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    approveButton: {
+      backgroundColor: COLORS.teal,
+    },
+    rejectButton: {
+      backgroundColor: COLORS.danger,
+    },
+    actionButtonText: {
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    actionPanel: {
+      marginTop: 14,
+      backgroundColor: COLORS.cardSoft,
+      borderRadius: 16,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    actionPanelTitle: {
+      color: COLORS.text,
+      fontSize: 14,
+      fontWeight: '900',
+      marginBottom: 10,
+    },
+    noteInput: {
+      minHeight: 86,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.card,
+      color: COLORS.text,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      textAlignVertical: 'top',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    actionPanelFooter: {
+      marginTop: 10,
+      flexDirection: 'row',
+      gap: 10,
+    },
+    cancelButton: {
+      flex: 1,
+      minHeight: 42,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.primarySoft,
+    },
+    cancelButtonText: {
+      color: COLORS.primary,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    submitButton: {
+      flex: 1,
+      minHeight: 42,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    submitApproveButton: {
+      backgroundColor: COLORS.teal,
+    },
+    submitDangerButton: {
+      backgroundColor: COLORS.danger,
+    },
+    submitButtonText: {
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    disabledButton: {
+      opacity: 0.6,
     },
   });
 }

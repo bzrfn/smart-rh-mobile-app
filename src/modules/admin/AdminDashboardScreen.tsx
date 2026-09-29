@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -131,9 +132,11 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     [isAdmin, token]
   );
 
-  useEffect(() => {
-    loadSummary();
-  }, [loadSummary]);
+  useFocusEffect(
+    useCallback(() => {
+      loadSummary();
+    }, [loadSummary])
+  );
 
   function confirmLogout() {
     Alert.alert('Cerrar sesión', '¿Deseas salir de tu cuenta administrativa?', [

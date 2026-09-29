@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -42,6 +45,8 @@ type IncapacidadAdmin = {
   created_at?: string | null;
   validacion_automatica?: AutomaticValidation | null;
 };
+
+type ReviewDecision = 'aprobada' | 'rechazada';
 
 function formatDate(value?: string | null) {
   if (!value) return 'No registrada';
@@ -129,6 +134,10 @@ export default function AdminIncapacidadesRevisionScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedDecision, setSelectedDecision] = useState<ReviewDecision | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [submittingId, setSubmittingId] = useState<number | null>(null);
 
   const pendingItems = useMemo(() => items.filter(requiresReview), [items]);
   const automaticReviewCount = useMemo(
@@ -161,6 +170,59 @@ export default function AdminIncapacidadesRevisionScreen() {
   useEffect(() => {
     loadItems();
   }, [loadItems]);
+
+  function openReviewAction(item: IncapacidadAdmin, decision: ReviewDecision) {
+    setSelectedId(item.id);
+    setSelectedDecision(decision);
+    setReviewNote('');
+  }
+
+  function closeReviewAction() {
+    setSelectedId(null);
+    setSelectedDecision(null);
+    setReviewNote('');
+  }
+
+  async function submitReviewAction(item: IncapacidadAdmin) {
+    if (!selectedDecision || selectedId !== item.id) return;
+
+    const note = reviewNote.trim();
+
+    if (selectedDecision === 'rechazada' && !note) {
+      Alert.alert(
+        'Observación requerida',
+        'Agrega el motivo del rechazo antes de continuar.'
+      );
+      return;
+    }
+
+    try {
+      setSubmittingId(item.id);
+
+      const { data } = await api.patch(`/incapacidades/${item.id}/revision`, {
+        estado: selectedDecision,
+        observaciones_admin: note || null,
+      });
+
+      closeReviewAction();
+      await loadItems(true);
+
+      Alert.alert(
+        'Revisión registrada',
+        data?.ok
+          ? 'La incapacidad se actualizó correctamente.'
+          : 'La revisión fue enviada al backend.'
+      );
+    } catch (e: any) {
+      Alert.alert(
+        'No se pudo registrar',
+        e?.response?.data?.message ||
+          'Intenta nuevamente o revisa la conexión con el backend.'
+      );
+    } finally {
+      setSubmittingId(null);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -225,6 +287,8 @@ export default function AdminIncapacidadesRevisionScreen() {
           const validationState = getValidationState(item);
           const isAutomaticAlert = validationState === 'requiere_revision';
           const validation = item.validacion_automatica;
+          const isActionOpen = selectedId === item.id && selectedDecision;
+          const isSubmitting = submittingId === item.id;
 
           return (
             <View key={item.id} style={styles.card}>
@@ -309,6 +373,70 @@ export default function AdminIncapacidadesRevisionScreen() {
                   />
                 </View>
               </View>
+
+              {isActionOpen ? (
+                <View style={styles.actionPanel}>
+                  <Text style={styles.actionPanelTitle}>
+                    {selectedDecision === 'aprobada'
+                      ? 'Aprobar incapacidad'
+                      : 'Rechazar incapacidad'}
+                  </Text>
+                  <TextInput
+                    value={reviewNote}
+                    onChangeText={setReviewNote}
+                    placeholder={
+                      selectedDecision === 'aprobada'
+                        ? 'Observación administrativa opcional'
+                        : 'Motivo del rechazo'
+                    }
+                    placeholderTextColor={colors.muted}
+                    multiline
+                    style={styles.noteInput}
+                    editable={!isSubmitting}
+                  />
+                  <View style={styles.actionPanelFooter}>
+                    <Pressable
+                      style={styles.cancelButton}
+                      onPress={closeReviewAction}
+                      disabled={isSubmitting}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancelar</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[
+                        styles.submitButton,
+                        selectedDecision === 'rechazada'
+                          ? styles.submitDangerButton
+                          : styles.submitApproveButton,
+                        isSubmitting && styles.disabledButton,
+                      ]}
+                      onPress={() => submitReviewAction(item)}
+                      disabled={isSubmitting}
+                    >
+                      <Text style={styles.submitButtonText}>
+                        {isSubmitting ? 'Guardando...' : 'Confirmar'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.actionRow}>
+                  <Pressable
+                    style={[styles.actionButton, styles.approveButton]}
+                    onPress={() => openReviewAction(item, 'aprobada')}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={styles.actionButtonText}>Aprobar</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionButton, styles.rejectButton]}
+                    onPress={() => openReviewAction(item, 'rechazada')}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={styles.actionButtonText}>Rechazar</Text>
+                  </Pressable>
+                </View>
+              )}
 
               <Text style={styles.cardFooter}>Solicitud #{item.id}</Text>
             </View>
@@ -658,6 +786,95 @@ function getStyles(isDark: boolean) {
       fontSize: 12,
       fontWeight: '800',
       textAlign: 'right',
+    },
+    actionRow: {
+      marginTop: 14,
+      flexDirection: 'row',
+      gap: 10,
+    },
+    actionButton: {
+      flex: 1,
+      minHeight: 44,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    approveButton: {
+      backgroundColor: COLORS.teal,
+    },
+    rejectButton: {
+      backgroundColor: COLORS.danger,
+    },
+    actionButtonText: {
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    actionPanel: {
+      marginTop: 14,
+      backgroundColor: COLORS.cardSoft,
+      borderRadius: 16,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    actionPanelTitle: {
+      color: COLORS.text,
+      fontSize: 14,
+      fontWeight: '900',
+      marginBottom: 10,
+    },
+    noteInput: {
+      minHeight: 86,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.card,
+      color: COLORS.text,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      textAlignVertical: 'top',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    actionPanelFooter: {
+      marginTop: 10,
+      flexDirection: 'row',
+      gap: 10,
+    },
+    cancelButton: {
+      flex: 1,
+      minHeight: 42,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.primarySoft,
+    },
+    cancelButtonText: {
+      color: COLORS.primary,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    submitButton: {
+      flex: 1,
+      minHeight: 42,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    submitApproveButton: {
+      backgroundColor: COLORS.teal,
+    },
+    submitDangerButton: {
+      backgroundColor: COLORS.danger,
+    },
+    submitButtonText: {
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    disabledButton: {
+      opacity: 0.6,
     },
   });
 }
