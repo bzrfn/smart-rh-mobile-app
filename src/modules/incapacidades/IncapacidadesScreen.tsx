@@ -8,6 +8,7 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -23,7 +24,8 @@ import {
 
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import {
   api,
@@ -92,9 +94,7 @@ type Incapacidad = {
 type ProofDraft = {
   base64: string;
   filename: string;
-  mime:
-    | 'image/jpeg'
-    | 'image/png';
+  mime: 'application/pdf';
   size:
     number | null;
 };
@@ -102,6 +102,32 @@ type ProofDraft = {
 
 const MAX_PROOF_BYTES =
   5 * 1024 * 1024;
+
+
+/* INC-68B_PDF_PROOF_PICKER */
+function base64ByteLength(
+  value: string
+): number {
+  const normalized =
+    value.replace(
+      /\s/g,
+      ''
+    );
+
+  const padding =
+    normalized.endsWith('==')
+      ? 2
+      : normalized.endsWith('=')
+        ? 1
+        : 0;
+
+  return Math.max(
+    0,
+    Math.floor(
+      normalized.length * 3 / 4
+    ) - padding
+  );
+}
 
 
 function dateToApi(
@@ -510,29 +536,19 @@ export default function IncapacidadesScreen() {
     );
 
 
-  async function pickProof():
+  async function pickPdfProof():
     Promise<ProofDraft | null> {
-    const permission =
-      await ImagePicker
-        .requestMediaLibraryPermissionsAsync();
-
-    if (
-      !permission.granted
-    ) {
-      Alert.alert(
-        'Permiso requerido',
-        'SMART RH necesita acceso a tus fotos para seleccionar el comprobante médico.'
-      );
-
-      return null;
-    }
-
     const result =
-      await ImagePicker
-        .launchImageLibraryAsync({
-          allowsEditing: false,
-          base64: true,
-          quality: 0.85,
+      await DocumentPicker
+        .getDocumentAsync({
+          type:
+            'application/pdf',
+
+          multiple:
+            false,
+
+          copyToCacheDirectory:
+            true,
         });
 
     if (
@@ -545,46 +561,45 @@ export default function IncapacidadesScreen() {
     const asset =
       result.assets[0];
 
-    const mime =
+    const filename =
+      asset.name?.trim() ||
+      'comprobante.pdf';
+
+    const normalizedMime =
       String(
         asset.mimeType ||
         ''
       ).toLowerCase();
 
+    const looksLikePdf =
+      normalizedMime ===
+        'application/pdf' ||
+      filename
+        .toLowerCase()
+        .endsWith(
+          '.pdf'
+        );
+
     if (
-      mime !==
-        'image/jpeg' &&
-      mime !==
-        'image/png'
+      !looksLikePdf
     ) {
       Alert.alert(
         'Formato no permitido',
-        'Selecciona una imagen JPG o PNG.'
+        'Selecciona un archivo PDF.'
       );
 
       return null;
     }
 
-    if (
-      !asset.base64
-    ) {
-      Alert.alert(
-        'Archivo inválido',
-        'No fue posible leer el comprobante seleccionado.'
-      );
-
-      return null;
-    }
-
-    const size =
-      typeof asset.fileSize ===
+    const declaredSize =
+      typeof asset.size ===
       'number'
-        ? asset.fileSize
+        ? asset.size
         : null;
 
     if (
-      size !== null &&
-      size >
+      declaredSize !== null &&
+      declaredSize >
         MAX_PROOF_BYTES
     ) {
       Alert.alert(
@@ -595,45 +610,100 @@ export default function IncapacidadesScreen() {
       return null;
     }
 
-    const extension =
-      mime ===
-        'image/png'
-        ? 'png'
-        : 'jpg';
+    const base64 =
+      await FileSystem
+        .readAsStringAsync(
+          asset.uri,
+          {
+            encoding:
+              FileSystem
+                .EncodingType
+                .Base64,
+          }
+        );
 
-    const filename =
-      asset.fileName?.trim() ||
-      `comprobante.${extension}`;
+    if (
+      !base64
+    ) {
+      Alert.alert(
+        'Archivo inválido',
+        'No fue posible leer el PDF seleccionado.'
+      );
+
+      return null;
+    }
+
+    const decodedSize =
+      base64ByteLength(
+        base64
+      );
+
+    if (
+      decodedSize >
+      MAX_PROOF_BYTES
+    ) {
+      Alert.alert(
+        'Archivo demasiado grande',
+        'El comprobante debe pesar como máximo 5 MB.'
+      );
+
+      return null;
+    }
 
     return {
-      base64:
-        asset.base64,
+      base64,
 
       filename,
 
-      mime,
+      mime:
+        'application/pdf',
 
-      size,
+      size:
+        declaredSize ??
+        decodedSize,
     };
   }
 
 
-  async function chooseProof() {
+  async function safePickProof(
+    picker:
+      () =>
+        Promise<
+          ProofDraft | null
+        >
+  ): Promise<ProofDraft | null> {
     try {
-      const picked =
-        await pickProof();
-
-      if (picked) {
-        setProof(
-          picked
-        );
-      }
+      return await picker();
     } catch (error) {
       Alert.alert(
         'No se pudo seleccionar',
         error instanceof Error
           ? error.message
           : 'No fue posible seleccionar el comprobante.'
+      );
+
+      return null;
+    }
+  }
+
+
+  function promptProofSelection():
+    Promise<ProofDraft | null> {
+    return safePickProof(
+      pickPdfProof
+    );
+  }
+
+
+  async function chooseProof() {
+    const picked =
+      await promptProofSelection();
+
+    if (
+      picked
+    ) {
+      setProof(
+        picked
       );
     }
   }
@@ -823,7 +893,7 @@ export default function IncapacidadesScreen() {
 
     try {
       const picked =
-        await pickProof();
+        await promptProofSelection();
 
       if (!picked) {
         return;
@@ -1274,7 +1344,7 @@ export default function IncapacidadesScreen() {
             >
               {proof
                 ? 'Cambiar comprobante'
-                : 'Seleccionar JPG o PNG'}
+                : 'Seleccionar PDF'}
             </Text>
           </Pressable>
 
@@ -1641,11 +1711,17 @@ export default function IncapacidadesScreen() {
           )}
         </View>
 
-        {selected && (
-          <View
-            style={
-              styles.card
-            }
+        {
+            selected && (
+              <Modal
+                transparent
+                visible={Boolean(selected)}
+                animationType="fade"
+                onRequestClose={() => setSelected(null)}
+              >
+                <View style={styles.detailModalBackdrop}>
+                  <View
+            style={[styles.card, styles.detailModalCard]}
           >
             <View
               style={
@@ -1812,7 +1888,10 @@ export default function IncapacidadesScreen() {
                 </Pressable>
               )}
           </View>
-        )}
+                </View>
+              </Modal>
+            )
+          }
       </ScrollView>
     </SafeAreaView>
   );
@@ -2010,6 +2089,29 @@ function getStyles(
     );
 
   return StyleSheet.create({
+      detailModalBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(2, 8, 23, 0.76)',
+        justifyContent: 'center',
+        paddingHorizontal: 18,
+        paddingVertical: 28,
+      },
+
+      detailModalCard: {
+        maxHeight: '86%',
+        marginTop: 0,
+        marginBottom: 0,
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 18,
+        },
+        shadowOpacity: 0.42,
+        shadowRadius: 24,
+        elevation: 18,
+      },
+
+
     safe: {
       flex: 1,
       backgroundColor:
