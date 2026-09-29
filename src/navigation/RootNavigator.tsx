@@ -313,7 +313,7 @@ function AdminNavigator() {
         contentStyle: {
           backgroundColor: colors.background,
         },
-        animation: 'slide_from_right',
+        animation: 'fade',
       }}
     >
       <Stack.Screen

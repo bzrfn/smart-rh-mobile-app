@@ -26,6 +26,8 @@ type DashboardState = {
   notificacionesPendientes: number;
 };
 
+type SummaryLoadMode = 'initial' | 'manual' | 'silent';
+
 const EMPTY_STATE: DashboardState = {
   asistenciaPendiente: 0,
   incapacidadesRevision: 0,
@@ -75,14 +77,18 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   );
 
   const loadSummary = useCallback(
-    async (isRefresh = false) => {
+    async (mode: SummaryLoadMode = 'initial') => {
       if (!token || !isAdmin) return;
 
-      try {
-        if (isRefresh) setRefreshing(true);
-        else setLoading(true);
+      const showInitialLoading = mode === 'initial';
+      const showManualRefresh = mode === 'manual';
+      const showErrors = mode !== 'silent';
 
-        setError('');
+      try {
+        if (showManualRefresh) setRefreshing(true);
+        else if (showInitialLoading) setLoading(true);
+
+        if (showErrors) setError('');
 
         const [asistenciaResult, incapacidadesResult, notificacionesResult] =
           await Promise.allSettled([
@@ -118,18 +124,22 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           incapacidadesResult.status === 'rejected' ||
           notificacionesResult.status === 'rejected'
         ) {
-          setError('Algunos indicadores no pudieron actualizarse.');
+          if (showErrors) {
+            setError('Algunos indicadores no pudieron actualizarse.');
+          }
         }
       } catch (e: any) {
-        setError(
-          e?.response?.data?.message ||
-            'No se pudo cargar el resumen administrativo.'
-        );
+        if (showErrors) {
+          setError(
+            e?.response?.data?.message ||
+              'No se pudo cargar el resumen administrativo.'
+          );
+        }
       } finally {
         hasLoadedSummaryRef.current = true;
 
-        if (isRefresh) setRefreshing(false);
-        else setLoading(false);
+        if (showManualRefresh) setRefreshing(false);
+        else if (showInitialLoading) setLoading(false);
       }
     },
     [isAdmin, token]
@@ -137,7 +147,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      loadSummary(hasLoadedSummaryRef.current);
+      loadSummary(hasLoadedSummaryRef.current ? 'silent' : 'initial');
     }, [loadSummary])
   );
 
@@ -178,7 +188,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => loadSummary(true)}
+            onRefresh={() => loadSummary('manual')}
             tintColor={colors.primary}
           />
         }
