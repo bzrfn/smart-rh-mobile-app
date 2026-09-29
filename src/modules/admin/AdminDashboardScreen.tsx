@@ -256,7 +256,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               title="Incapacidades por revisar"
               detail={`${summary.incapacidadesRevision} solicitudes detectadas.`}
               accent={summary.incapacidadesRevision > 0 ? 'gold' : 'blue'}
-              onPress={() => loadSummary(true)}
+              onPress={() => navigation.navigate('AdminIncapacidadesRevision')}
               styles={styles}
             />
             <ActionCard
@@ -272,7 +272,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               title="Perfil admin"
               detail="Datos de la cuenta administrativa."
               accent="teal"
-              onPress={() => navigation.navigate('Perfil')}
+              onPress={() => navigation.navigate('AdminPerfil')}
               styles={styles}
             />
             <ActionCard
@@ -284,14 +284,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               styles={styles}
             />
           </View>
-        </View>
-
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>QR de asistencia separado</Text>
-          <Text style={styles.infoText}>
-            Este panel no abre la Terminal de Asistencia. El registro de entrada
-            y salida continúa en su flujo independiente.
-          </Text>
         </View>
 
         <View style={styles.footerActions}>

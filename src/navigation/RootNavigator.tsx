@@ -25,6 +25,8 @@ import NominaScreen from '../modules/nomina/NominaScreen';
 import VacacionesScreen from '../modules/vacaciones/VacacionesScreen';
 import IncapacidadesScreen from '../modules/incapacidades/IncapacidadesScreen';
 import AdminDashboardScreen from '../modules/admin/AdminDashboardScreen';
+import AdminIncapacidadesRevisionScreen from '../modules/admin/AdminIncapacidadesRevisionScreen';
+import AdminPerfilScreen from '../modules/admin/AdminPerfilScreen';
 import AdminUsuariosScreen from '../modules/admin/AdminUsuariosScreen';
 import CredencialScreen from '../modules/documentos/CredencialScreen';
 import VerificarCredencialScreen from '../modules/documentos/VerificarCredencialScreen';
@@ -47,6 +49,8 @@ export type RootStackParamList = {
 
   Home: undefined;
   AdminDashboard: undefined;
+  AdminIncapacidadesRevision: undefined;
+  AdminPerfil: undefined;
   QrScan: undefined;
   Asistencia: undefined;
   Contratos: undefined;
@@ -333,13 +337,18 @@ function AdminNavigator() {
         options={{ title: 'Administrar accesos' }}
       />
       <Stack.Screen
+        name="AdminIncapacidadesRevision"
+        component={AdminIncapacidadesRevisionScreen}
+        options={{ title: 'Incapacidades por revisar' }}
+      />
+      <Stack.Screen
         name="Notificaciones"
         component={NotificacionesScreen}
         options={{ title: 'Notificaciones admin' }}
       />
       <Stack.Screen
-        name="Perfil"
-        component={PerfilScreen}
+        name="AdminPerfil"
+        component={AdminPerfilScreen}
         options={{ title: 'Perfil admin' }}
       />
     </Stack.Navigator>
