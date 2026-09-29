@@ -31,6 +31,93 @@ export default function LoginScreen({ navigation }: Props) {
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [loading, setLoading] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
+  const [adminAccessChallengeId, setAdminAccessChallengeId] = useState('');
+  const [adminAccessCode, setAdminAccessCode] = useState('');
+  const [adminAccessToken, setAdminAccessToken] = useState('');
+  const [loadingAdminAccess, setLoadingAdminAccess] = useState(false);
+
+  async function requestAdminAccess() {
+    if (loadingAdminAccess) return;
+
+    try {
+      setLoadingAdminAccess(true);
+      setAdminAccessToken('');
+      setAdminAccessCode('');
+
+      const { data } = await api.post('/auth/admin-access/request');
+
+      if (!data?.accepted || !data?.challengeId) {
+        Alert.alert(
+          'No se pudo solicitar acceso',
+          data?.message || 'Intenta nuevamente.'
+        );
+        return;
+      }
+
+      setAdminAccessChallengeId(data.challengeId);
+
+      Alert.alert(
+        'Código solicitado',
+        data?.message ||
+          'Se envió el código de preautorización al administrador general.'
+      );
+    } catch (e: any) {
+      Alert.alert(
+        'Error',
+        e?.response?.data?.message ||
+          e?.message ||
+          'No se pudo solicitar la preautorización administrativa.'
+      );
+    } finally {
+      setLoadingAdminAccess(false);
+    }
+  }
+
+  async function verifyAdminAccess() {
+    if (loadingAdminAccess) return;
+
+    if (!adminAccessChallengeId || !adminAccessCode.trim()) {
+      Alert.alert(
+        'Código requerido',
+        'Solicita el acceso e ingresa el código de preautorización.'
+      );
+      return;
+    }
+
+    try {
+      setLoadingAdminAccess(true);
+
+      const { data } = await api.post('/auth/admin-access/verify', {
+        challengeId: adminAccessChallengeId,
+        codigo: adminAccessCode.trim(),
+      });
+
+      if (!data?.authorized || !data?.adminAccessToken) {
+        Alert.alert(
+          'No autorizado',
+          data?.message || 'No se pudo validar la preautorización.'
+        );
+        return;
+      }
+
+      setAdminAccessToken(data.adminAccessToken);
+
+      Alert.alert(
+        'Preautorización validada',
+        'Ahora ingresa las credenciales administrativas para recibir el código 2FA.'
+      );
+    } catch (e: any) {
+      Alert.alert(
+        'Error',
+        e?.response?.data?.message ||
+          e?.message ||
+          'No se pudo validar la preautorización administrativa.'
+      );
+    } finally {
+      setLoadingAdminAccess(false);
+    }
+  }
 
   const onLogin = async () => {
     if (loading) return;
@@ -45,10 +132,28 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       setLoading(true);
 
-      const { data } = await api.post('/auth/login', {
-        correo: correoLimpio,
-        contrasena,
-      });
+      if (adminMode && !adminAccessToken) {
+        Alert.alert(
+          'Preautorización requerida',
+          'Valida primero el código administrativo antes de iniciar sesión.'
+        );
+        return;
+      }
+
+      const { data } = await api.post(
+        adminMode ? '/auth/admin-login' : '/auth/login',
+        {
+          correo: correoLimpio,
+          contrasena,
+        },
+        adminMode
+          ? {
+              headers: {
+                Authorization: `Bearer ${adminAccessToken}`,
+              },
+            }
+          : undefined
+      );
 
       if (!data?.ok) {
         Alert.alert('Error', data?.message ?? 'No se pudo iniciar sesión.');
@@ -183,6 +288,95 @@ export default function LoginScreen({ navigation }: Props) {
                 <Text style={styles.cardDescription}>
                   Ingresa tus credenciales para recibir el código de verificación.
                 </Text>
+
+                <View style={styles.adminModeCard}>
+                  <View style={styles.adminModeHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.adminModeTitle}>
+                        Acceso administrador
+                      </Text>
+                      <Text style={styles.adminModeText}>
+                        Actívalo solo para cuentas administrativas con preautorización.
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      style={[
+                        styles.adminModeToggle,
+                        adminMode && styles.adminModeToggleActive,
+                      ]}
+                      onPress={() => {
+                        setAdminMode((value) => !value);
+                        setAdminAccessChallengeId('');
+                        setAdminAccessCode('');
+                        setAdminAccessToken('');
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.adminModeToggleText,
+                          adminMode && styles.adminModeToggleTextActive,
+                        ]}
+                      >
+                        {adminMode ? 'Activo' : 'Inactivo'}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  {adminMode ? (
+                    <View style={styles.adminAccessBox}>
+                      <Pressable
+                        style={[
+                          styles.adminAccessButton,
+                          loadingAdminAccess && styles.adminAccessButtonDisabled,
+                        ]}
+                        onPress={requestAdminAccess}
+                        disabled={loadingAdminAccess}
+                      >
+                        <Text style={styles.adminAccessButtonText}>
+                          {adminAccessChallengeId
+                            ? 'Solicitar nuevo código'
+                            : 'Solicitar código admin'}
+                        </Text>
+                      </Pressable>
+
+                      {adminAccessChallengeId ? (
+                        <View style={styles.fieldGroup}>
+                          <Text style={styles.label}>Código admin</Text>
+                          <TextInput
+                            value={adminAccessCode}
+                            onChangeText={(text) =>
+                              setAdminAccessCode(
+                                text.replace(/[^0-9]/g, '').slice(0, 6)
+                              )
+                            }
+                            placeholder="000000"
+                            placeholderTextColor={COLORS.placeholder}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            style={styles.input}
+                          />
+
+                          <Pressable
+                            style={[
+                              styles.adminVerifyButton,
+                              loadingAdminAccess &&
+                                styles.adminAccessButtonDisabled,
+                            ]}
+                            onPress={verifyAdminAccess}
+                            disabled={loadingAdminAccess}
+                          >
+                            <Text style={styles.adminVerifyButtonText}>
+                              {adminAccessToken
+                                ? 'Preautorización lista'
+                                : 'Validar preautorización'}
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : null}
+                </View>
 
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Correo</Text>
@@ -419,6 +613,88 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       color: COLORS.textMuted,
       textAlign: 'center',
       lineHeight: 21,
+    },
+    adminModeCard: {
+      marginBottom: 18,
+      backgroundColor: COLORS.cardSoft,
+      borderRadius: 20,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    adminModeHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    adminModeTitle: {
+      color: COLORS.text,
+      fontSize: 15,
+      fontWeight: '900',
+    },
+    adminModeText: {
+      marginTop: 4,
+      color: COLORS.textMuted,
+      fontSize: 12,
+      lineHeight: 18,
+    },
+    adminModeToggle: {
+      minWidth: 82,
+      alignItems: 'center',
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      backgroundColor: COLORS.card,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    adminModeToggleActive: {
+      backgroundColor: COLORS.tealBg,
+      borderColor: COLORS.teal,
+    },
+    adminModeToggleText: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+      fontWeight: '900',
+    },
+    adminModeToggleTextActive: {
+      color: COLORS.teal,
+    },
+    adminAccessBox: {
+      marginTop: 14,
+      gap: 12,
+    },
+    adminAccessButton: {
+      minHeight: 46,
+      borderRadius: 16,
+      backgroundColor: COLORS.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: COLORS.primary,
+    },
+    adminAccessButtonDisabled: {
+      opacity: 0.65,
+    },
+    adminAccessButtonText: {
+      color: COLORS.primary,
+      fontWeight: '900',
+      fontSize: 13,
+    },
+    adminVerifyButton: {
+      marginTop: 10,
+      minHeight: 46,
+      borderRadius: 16,
+      backgroundColor: COLORS.tealBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: COLORS.teal,
+    },
+    adminVerifyButtonText: {
+      color: COLORS.teal,
+      fontWeight: '900',
+      fontSize: 13,
     },
     fieldGroup: { marginBottom: 16 },
     label: {

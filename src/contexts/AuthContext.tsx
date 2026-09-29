@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = parsed?.token ?? null;
       const user = parsed?.user ?? null;
 
-        if (!token || !user || isAdminUser(user)) {
+        if (!token || !user) {
           setAuthToken(null);
           await AsyncStorage.removeItem(STORAGE_KEY);
 
@@ -123,15 +123,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setAuthToken(token);
 
+      const isAdmin = isAdminUser(user);
+
       setState({
         token,
         user,
         permisos: {},
-        ready: false,
+        ready: isAdmin,
         theme,
       });
 
-      if (token) {
+      if (token && !isAdmin) {
         await loadPermisos();
       }
 
@@ -155,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function setAuth(token: string, user: User) {
-    if (!token || !user || isAdminUser(user)) {
+    if (!token || !user) {
       setAuthToken(null);
       await AsyncStorage.removeItem(STORAGE_KEY);
 
@@ -172,6 +174,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setAuthToken(token);
 
+    const isAdmin = isAdminUser(user);
+
     await AsyncStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -185,10 +189,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       token,
       user,
       permisos: {},
-      ready: false,
+      ready: isAdmin,
     }));
 
-    await loadPermisos();
+    if (!isAdmin) {
+      await loadPermisos();
+    }
 
     setState((s) => ({
       ...s,

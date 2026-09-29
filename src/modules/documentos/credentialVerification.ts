@@ -9,10 +9,18 @@ export type CredentialQrPayload = {
 export type CredentialVerificationResult = {
   valida: boolean;
   estado: string;
+  resultado?: 'valida' | 'vencida' | 'invalida';
+  usuario?: {
+    id: number;
+    activo: boolean;
+  };
   empleado?: {
     codigo: string;
     nombre: string;
     rol: string;
+  };
+  credencial?: {
+    vigencia?: string;
   };
   vigencia?: string;
 };

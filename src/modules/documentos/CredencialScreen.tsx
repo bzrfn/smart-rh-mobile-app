@@ -10,23 +10,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { api } from '../../services/api';
 import { usePrivateMediaUri } from '../../hooks/usePrivateMediaUri';
 import { sharePrivateMedia } from '../../services/privateMedia';
 import { useAuth } from '../../contexts/AuthContext';
 
-type Props =
-  NativeStackScreenProps<
-    RootStackParamList,
-    'Credencial'
-  >;
 
-
-export default function CredencialScreen({
-  navigation,
-}: Props) {
+export default function CredencialScreen() {
   const { user, updateUser, theme, token } = useAuth();
 
   const isDark = theme === 'dark';
@@ -190,19 +180,6 @@ export default function CredencialScreen({
               disabled={!finalCredencialUrl}
             >
               <Text style={styles.buttonSecondaryText}>Ver credencial</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.buttonSecondary}
-              onPress={() =>
-                navigation.navigate(
-                  'VerificarCredencial'
-                )
-              }
-            >
-              <Text style={styles.buttonSecondaryText}>
-                Verificar QR de credencial
-              </Text>
             </Pressable>
           </View>
         </View>

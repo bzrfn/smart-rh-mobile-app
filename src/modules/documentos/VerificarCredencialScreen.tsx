@@ -40,17 +40,27 @@ type VerificationState =
   | 'idle'
   | 'loading'
   | 'valid'
+  | 'expired'
   | 'invalid'
+  | 'unauthorized'
   | 'error';
 
 
 export default function VerificarCredencialScreen() {
   const {
     theme,
+    user,
   } = useAuth();
 
   const isDark =
     theme === 'dark';
+
+  const isAdmin =
+    String(
+      user?.role || ''
+    )
+      .trim()
+      .toLowerCase() === 'admin';
 
   const styles =
     getStyles(isDark);
@@ -160,7 +170,7 @@ export default function VerificarCredencialScreen() {
         data,
       } =
         await api.get<CredentialVerificationResult>(
-          `/documentos/credenciales/verificar/${encodeURIComponent(
+          `/documentos/admin/credenciales/verificar/${encodeURIComponent(
             payload.token
           )}`
         );
@@ -184,8 +194,23 @@ export default function VerificarCredencialScreen() {
       }
 
       setResult(
-        null
+        data || null
       );
+
+      if (
+        data?.resultado === 'vencida' ||
+        data?.estado === 'VENCIDA'
+      ) {
+        setState(
+          'expired'
+        );
+
+        setMessage(
+          'La credencial pertenece a SMART RH, pero su vigencia ya terminó.'
+        );
+
+        return;
+      }
 
       setState(
         'invalid'
@@ -208,6 +233,16 @@ export default function VerificarCredencialScreen() {
         error?.response?.data?.message;
 
       if (
+        error?.response?.status === 403
+      ) {
+        setState(
+          'unauthorized'
+        );
+
+        setMessage(
+          'Tu cuenta no está autorizada para verificar credenciales.'
+        );
+      } else if (
         error?.response?.status === 404
       ) {
         setMessage(
@@ -220,6 +255,49 @@ export default function VerificarCredencialScreen() {
         );
       }
     }
+  }
+
+
+  if (
+    !isAdmin
+  ) {
+    return (
+      <SafeAreaView
+        style={
+          styles.safeCenter
+        }
+      >
+        <View
+          style={
+            styles.stateCard
+          }
+        >
+          <Text
+            style={
+              styles.stateBrand
+            }
+          >
+            SMART RH
+          </Text>
+
+          <Text
+            style={
+              styles.stateTitle
+            }
+          >
+            Acceso restringido
+          </Text>
+
+          <Text
+            style={
+              styles.stateText
+            }
+          >
+            La verificación de credenciales está reservada para cuentas administradoras.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
 
@@ -336,6 +414,8 @@ export default function VerificarCredencialScreen() {
 
   const isInvalid =
     state === 'invalid' ||
+    state === 'expired' ||
+    state === 'unauthorized' ||
     state === 'error';
 
 
@@ -466,6 +546,10 @@ export default function VerificarCredencialScreen() {
                   ? 'Validando'
                   : isValid
                   ? 'Vigente'
+                  : state === 'expired'
+                  ? 'Vencida'
+                  : state === 'unauthorized'
+                  ? 'No autorizada'
                   : isInvalid
                   ? 'No válida'
                   : 'En espera'}
@@ -557,7 +641,8 @@ export default function VerificarCredencialScreen() {
                   label="Vigencia"
                   value={
                     formatCredentialValidity(
-                      result.vigencia
+                      result.credencial?.vigencia ||
+                        result.vigencia
                     )
                   }
                   styles={
