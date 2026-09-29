@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -67,6 +67,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const hasLoadedSummaryRef = useRef(false);
 
   const adminName = useMemo(
     () => `${user?.nombre || 'Administrador'} ${user?.apellido || ''}`.trim(),
@@ -125,6 +126,8 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             'No se pudo cargar el resumen administrativo.'
         );
       } finally {
+        hasLoadedSummaryRef.current = true;
+
         if (isRefresh) setRefreshing(false);
         else setLoading(false);
       }
@@ -134,7 +137,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      loadSummary();
+      loadSummary(hasLoadedSummaryRef.current);
     }, [loadSummary])
   );
 
