@@ -996,48 +996,54 @@ export default function CalendarioLaboralScreen() {
                 return (
                   <Pressable
                     key={cell.date}
-                    style={[
-                      styles.dayCell,
-                      isToday &&
-                        styles.dayCellToday,
-                      isSelected &&
-                        styles.dayCellSelected,
-                    ]}
+                    style={styles.dayCell}
                     onPress={() =>
                       setSelectedDate(
                         cell.date
                       )
                     }
                   >
-                    <Text
+                    <View
                       style={[
-                        styles.dayNumber,
+                        styles.dayInner,
+                        isToday &&
+                          styles.dayInnerToday,
                         isSelected &&
-                          styles.dayNumberSelected,
+                          styles.dayInnerSelected,
                       ]}
                     >
-                      {cell.day}
-                    </Text>
-
-                    {count > 0 ? (
-                      <View
+                      <Text
                         style={[
-                          styles.dayEventBadge,
+                          styles.dayNumber,
                           isSelected &&
-                            styles.dayEventBadgeSelected,
+                            styles.dayNumberSelected,
                         ]}
                       >
-                        <Text
+                        {cell.day}
+                      </Text>
+
+                      {count > 0 ? (
+                        <View
                           style={[
-                            styles.dayEventBadgeText,
+                            styles.dayEventBadge,
                             isSelected &&
-                              styles.dayEventBadgeTextSelected,
+                              styles.dayEventBadgeSelected,
                           ]}
                         >
-                          {count}
-                        </Text>
-                      </View>
-                    ) : null}
+                          <Text
+                            style={[
+                              styles.dayEventBadgeText,
+                              isSelected &&
+                                styles.dayEventBadgeTextSelected,
+                            ]}
+                          >
+                            {count > 9
+                              ? '9+'
+                              : count}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
                   </Pressable>
                 );
               }
@@ -1114,7 +1120,7 @@ export default function CalendarioLaboralScreen() {
         ) : null}
 
         <View style={styles.sectionHeader}>
-          <View>
+          <View style={styles.sectionTitleWrap}>
             <Text style={styles.sectionTitle}>
               {selectedDate
                 ? `Agenda del ${formatDate(selectedDate)}`
@@ -1125,20 +1131,9 @@ export default function CalendarioLaboralScreen() {
             </Text>
           </View>
 
-          {selectedEvents.length > 0 ? (
-            <Pressable
-              style={styles.openSelectionButton}
-              onPress={() =>
-                setActiveSummary(
-                  'selection'
-                )
-              }
-            >
-              <Text style={styles.clearSelectionText}>
-                Abrir
-              </Text>
-            </Pressable>
-          ) : null}
+          <Text style={styles.sectionCount}>
+            {selectedEvents.length} registro(s)
+          </Text>
         </View>
 
         {selectedDate ? (
@@ -1214,7 +1209,19 @@ export default function CalendarioLaboralScreen() {
             null
           )
         }
-        onSelectEvent={setActiveEvent}
+        onSelectEvent={(event) => {
+          setActiveSummary(
+            null
+          );
+
+          setTimeout(
+            () =>
+              setActiveEvent(
+                event
+              ),
+            180
+          );
+        }}
       />
 
       <EventDetailModal
@@ -1254,10 +1261,7 @@ function StatCard({
   return (
     <Pressable
       onPress={onPress}
-      style={[
-        styles.statCard,
-        styles[`${accent}SoftBg`],
-      ]}
+      style={styles.statCard}
     >
       <View
         style={[
@@ -1603,15 +1607,15 @@ function getColors(
     cardSoft:
       isDark ? '#132238' : '#F7FAFD',
     primary:
-      isDark ? '#7DD3FC' : '#0A57A4',
+      isDark ? '#38BDF8' : '#0A57A4',
     primarySoft:
       isDark ? 'rgba(125,211,252,0.13)' : 'rgba(10,87,164,0.08)',
     teal:
-      isDark ? '#5EEAD4' : '#0F766E',
+      isDark ? '#2DD4BF' : '#0F766E',
     tealBg:
       isDark ? 'rgba(94,234,212,0.12)' : 'rgba(15,118,110,0.08)',
     gold:
-      isDark ? '#FDE68A' : '#B7791F',
+      isDark ? '#FACC15' : '#A16207',
     goldBg:
       isDark ? 'rgba(253,230,138,0.12)' : 'rgba(183,121,31,0.08)',
     danger:
@@ -1643,7 +1647,7 @@ function getStyles(
         COLORS.background,
     },
     container: {
-      padding: 20,
+      padding: 18,
       gap: 16,
       paddingBottom: 42,
     },
@@ -1726,8 +1730,8 @@ function getStyles(
     monthCard: {
       backgroundColor:
         COLORS.card,
-      borderRadius: 24,
-      padding: 16,
+      borderRadius: 22,
+      padding: 18,
       borderWidth: 1,
       borderColor:
         COLORS.border,
@@ -1740,21 +1744,24 @@ function getStyles(
       gap: 12,
     },
     monthButton: {
-      width: 44,
-      height: 44,
-      borderRadius: 16,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
       alignItems: 'center',
       justifyContent:
         'center',
       backgroundColor:
-        COLORS.primarySoft,
+        COLORS.cardSoft,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
     },
     monthButtonText: {
       color:
         COLORS.primary,
-      fontSize: 28,
+      fontSize: 24,
       fontWeight: '900',
-      lineHeight: 30,
+      lineHeight: 26,
     },
     monthTitleWrap: {
       flex: 1,
@@ -1775,7 +1782,7 @@ function getStyles(
       fontWeight: '700',
     },
     todayButton: {
-      marginTop: 14,
+      marginTop: 12,
       alignSelf: 'center',
       borderRadius: 999,
       paddingHorizontal: 14,
@@ -1807,40 +1814,45 @@ function getStyles(
     calendarGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      marginTop: 8,
+      marginTop: 10,
     },
     dayCell: {
       width: `${100 / 7}%`,
       height: 48,
-      borderRadius: 14,
       alignItems: 'center',
       justifyContent:
         'center',
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      backgroundColor:
-        COLORS.cardSoft,
     },
     dayCellEmpty: {
       opacity: 0,
     },
-    dayCellToday: {
+    dayInner: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      position: 'relative',
+    },
+    dayInnerToday: {
       borderColor:
         COLORS.primary,
       backgroundColor:
         COLORS.primarySoft,
+      borderWidth: 1,
     },
-    dayCellSelected: {
+    dayInnerSelected: {
       backgroundColor:
         COLORS.primary,
       borderColor:
         COLORS.primary,
+      borderWidth: 1,
     },
     dayNumber: {
       color:
         COLORS.text,
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '900',
     },
     dayNumberSelected: {
@@ -1848,16 +1860,17 @@ function getStyles(
         '#FFFFFF',
     },
     dayEventBadge: {
-      marginTop: 3,
-      minWidth: 18,
-      height: 16,
-      borderRadius: 8,
+      position: 'absolute',
+      bottom: 4,
+      minWidth: 14,
+      height: 14,
+      borderRadius: 7,
       alignItems: 'center',
       justifyContent:
         'center',
       backgroundColor:
-        COLORS.tealBg,
-      paddingHorizontal: 5,
+        COLORS.teal,
+      paddingHorizontal: 4,
     },
     dayEventBadgeSelected: {
       backgroundColor:
@@ -1865,8 +1878,8 @@ function getStyles(
     },
     dayEventBadgeText: {
       color:
-        COLORS.teal,
-      fontSize: 10,
+        '#FFFFFF',
+      fontSize: 8,
       fontWeight: '900',
     },
     dayEventBadgeTextSelected: {
@@ -1880,7 +1893,7 @@ function getStyles(
     },
     statCard: {
       width: '48%',
-      minHeight: 112,
+      minHeight: 102,
       borderRadius: 18,
       overflow: 'hidden',
       padding: 16,
@@ -1888,6 +1901,8 @@ function getStyles(
       borderWidth: 1,
       borderColor:
         COLORS.border,
+      backgroundColor:
+        COLORS.card,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
@@ -1971,12 +1986,31 @@ function getStyles(
       fontSize: 20,
       fontWeight: '900',
     },
+    sectionTitleWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
     sectionSubtitle: {
       marginTop: 4,
       color:
         COLORS.muted,
       fontSize: 13,
       fontWeight: '700',
+    },
+    sectionCount: {
+      flexShrink: 0,
+      color:
+        COLORS.muted,
+      fontSize: 12,
+      fontWeight: '900',
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      borderRadius: 999,
+      backgroundColor:
+        COLORS.card,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
     },
     clearSelectionButton: {
       borderRadius: 999,
