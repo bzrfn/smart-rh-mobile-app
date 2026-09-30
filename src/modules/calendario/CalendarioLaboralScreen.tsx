@@ -763,18 +763,6 @@ export default function CalendarioLaboralScreen() {
       ]
     );
 
-  const previewEvents =
-    useMemo(
-      () =>
-        selectedEvents.slice(
-          0,
-          2
-        ),
-      [
-        selectedEvents,
-      ]
-    );
-
   const summaryEvents =
     useMemo(
       () => {
@@ -1023,24 +1011,25 @@ export default function CalendarioLaboralScreen() {
                       </Text>
 
                       {count > 0 ? (
-                        <View
-                          style={[
-                            styles.dayEventBadge,
-                            isSelected &&
-                              styles.dayEventBadgeSelected,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.dayEventBadgeText,
-                              isSelected &&
-                                styles.dayEventBadgeTextSelected,
-                            ]}
-                          >
-                            {count > 9
-                              ? '9+'
-                              : count}
-                          </Text>
+                        <View style={styles.dayEventDots}>
+                          {Array.from({
+                            length:
+                              Math.min(
+                                count,
+                                3
+                              ),
+                          }).map(
+                            (_, dotIndex) => (
+                              <View
+                                key={`${cell.date}-${dotIndex}`}
+                                style={[
+                                  styles.dayEventDot,
+                                  isSelected &&
+                                    styles.dayEventDotSelected,
+                                ]}
+                              />
+                            )
+                          )}
                         </View>
                       ) : null}
                     </View>
@@ -1119,82 +1108,38 @@ export default function CalendarioLaboralScreen() {
           </View>
         ) : null}
 
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionTitleWrap}>
-            <Text style={styles.sectionTitle}>
+        <Pressable
+          style={styles.selectedAgendaCard}
+          onPress={() =>
+            setActiveSummary(
+              selectedDate
+                ? 'selection'
+                : 'all'
+            )
+          }
+        >
+          <View style={styles.selectedAgendaCopy}>
+            <Text style={styles.selectedAgendaLabel}>
               {selectedDate
-                ? `Agenda del ${formatDate(selectedDate)}`
+                ? 'Agenda seleccionada'
                 : 'Agenda del mes'}
             </Text>
-            <Text style={styles.sectionSubtitle}>
-              Toca una tarjeta para ver su detalle completo.
+            <Text style={styles.selectedAgendaTitle}>
+              {selectedDate
+                ? formatDate(selectedDate)
+                : formatMonthTitle(currentMonth)}
+            </Text>
+            <Text style={styles.selectedAgendaSubtitle}>
+              {selectedEvents.length > 0
+                ? `${selectedEvents.length} registro(s). Toca para abrir la tarjeta completa.`
+                : 'Sin registros para esta selección.'}
             </Text>
           </View>
 
-          <Text style={styles.sectionCount}>
-            {selectedEvents.length} registro(s)
+          <Text style={styles.selectedAgendaAction}>
+            Ver
           </Text>
-        </View>
-
-        {selectedDate ? (
-          <Pressable
-            style={styles.monthLinkButton}
-            onPress={() =>
-              setSelectedDate(
-                null
-              )
-            }
-          >
-            <Text style={styles.monthLinkText}>
-              Ver agenda mensual completa
-            </Text>
-          </Pressable>
-        ) : null}
-
-        {!loading &&
-        selectedEvents.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>
-              Sin eventos registrados
-            </Text>
-            <Text style={styles.emptyText}>
-              No hay asistencia, vacaciones o incapacidades para esta selección.
-            </Text>
-          </View>
-        ) : null}
-
-        <View style={styles.eventList}>
-          {previewEvents.map(
-            (item) => (
-              <EventCard
-                key={`${item.id}-${selectedDate || 'month'}`}
-                item={item}
-                scope={scope}
-                styles={styles}
-                onPress={() =>
-                  setActiveEvent(
-                    item
-                  )
-                }
-              />
-            )
-          )}
-        </View>
-
-        {selectedEvents.length > previewEvents.length ? (
-          <Pressable
-            style={styles.moreEventsButton}
-            onPress={() =>
-              setActiveSummary(
-                'selection'
-              )
-            }
-          >
-            <Text style={styles.moreEventsText}>
-              Ver {selectedEvents.length - previewEvents.length} registro(s) más
-            </Text>
-          </Pressable>
-        ) : null}
+        </Pressable>
       </ScrollView>
 
       <SummaryModal
@@ -1420,8 +1365,14 @@ function SummaryModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalPanel}>
+      <Pressable
+        style={styles.modalBackdrop}
+        onPress={onClose}
+      >
+        <Pressable
+          style={styles.modalPanel}
+          onPress={() => undefined}
+        >
           <View style={styles.modalHandle} />
 
           <View style={styles.modalHeader}>
@@ -1476,8 +1427,8 @@ function SummaryModal({
               )}
             </ScrollView>
           )}
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -1505,8 +1456,14 @@ function EventDetailModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.detailPanel}>
+      <Pressable
+        style={styles.modalBackdrop}
+        onPress={onClose}
+      >
+        <Pressable
+          style={styles.detailPanel}
+          onPress={() => undefined}
+        >
           <View style={styles.modalHandle} />
 
           <View style={styles.detailHeader}>
@@ -1567,8 +1524,8 @@ function EventDetailModal({
             value={event.descripcion || 'Sin descripción'}
             styles={styles}
           />
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -1601,33 +1558,33 @@ function getColors(
 ) {
   return {
     background:
-      isDark ? '#07111F' : '#F5F7FB',
+      isDark ? '#0B1628' : '#F5F7FB',
     card:
-      isDark ? '#0E1A2B' : '#FFFFFF',
+      isDark ? '#132238' : '#FFFFFF',
     cardSoft:
-      isDark ? '#132238' : '#F7FAFD',
+      isDark ? '#1A2A42' : '#F7FAFD',
     primary:
-      isDark ? '#38BDF8' : '#0A57A4',
+      isDark ? '#60A5FA' : '#0A57A4',
     primarySoft:
-      isDark ? 'rgba(125,211,252,0.13)' : 'rgba(10,87,164,0.08)',
+      isDark ? 'rgba(96,165,250,0.14)' : 'rgba(10,87,164,0.08)',
     teal:
-      isDark ? '#2DD4BF' : '#0F766E',
+      isDark ? '#45D6C6' : '#0F766E',
     tealBg:
-      isDark ? 'rgba(94,234,212,0.12)' : 'rgba(15,118,110,0.08)',
+      isDark ? 'rgba(69,214,198,0.13)' : 'rgba(15,118,110,0.08)',
     gold:
-      isDark ? '#FACC15' : '#A16207',
+      isDark ? '#F8D86B' : '#A16207',
     goldBg:
-      isDark ? 'rgba(253,230,138,0.12)' : 'rgba(183,121,31,0.08)',
+      isDark ? 'rgba(248,216,107,0.13)' : 'rgba(183,121,31,0.08)',
     danger:
-      isDark ? '#FCA5A5' : '#B42318',
+      isDark ? '#FDA4AF' : '#B42318',
     dangerBg:
-      isDark ? 'rgba(252,165,165,0.11)' : 'rgba(180,35,24,0.07)',
+      isDark ? 'rgba(253,164,175,0.12)' : 'rgba(180,35,24,0.07)',
     text:
       isDark ? '#F8FAFC' : '#0F172A',
     muted:
-      isDark ? '#A8B7CA' : '#5B6B81',
+      isDark ? '#B8C4D6' : '#5B6B81',
     border:
-      isDark ? '#24344A' : '#DDE5EF',
+      isDark ? '#30435F' : '#DDE5EF',
   };
 }
 
@@ -1751,10 +1708,12 @@ function getStyles(
       justifyContent:
         'center',
       backgroundColor:
-        COLORS.cardSoft,
+        COLORS.primarySoft,
       borderWidth: 1,
       borderColor:
-        COLORS.border,
+        isDark
+          ? 'rgba(96,165,250,0.28)'
+          : COLORS.border,
     },
     monthButtonText: {
       color:
@@ -1785,13 +1744,15 @@ function getStyles(
       marginTop: 12,
       alignSelf: 'center',
       borderRadius: 999,
-      paddingHorizontal: 14,
-      paddingVertical: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 9,
       backgroundColor:
-        COLORS.cardSoft,
+        COLORS.primarySoft,
       borderWidth: 1,
       borderColor:
-        COLORS.border,
+        isDark
+          ? 'rgba(96,165,250,0.24)'
+          : COLORS.border,
     },
     todayButtonText: {
       color:
@@ -1859,32 +1820,27 @@ function getStyles(
       color:
         '#FFFFFF',
     },
-    dayEventBadge: {
+    dayEventDots: {
       position: 'absolute',
       bottom: 4,
-      minWidth: 14,
-      height: 14,
-      borderRadius: 7,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent:
-        'center',
+      justifyContent: 'center',
+      gap: 3,
+    },
+    dayEventDot: {
+      width: 5,
+      height: 5,
+      borderRadius: 999,
       backgroundColor:
         COLORS.teal,
-      paddingHorizontal: 4,
+      opacity: 0.95,
     },
-    dayEventBadgeSelected: {
+    dayEventDotSelected: {
       backgroundColor:
-        'rgba(255,255,255,0.20)',
-    },
-    dayEventBadgeText: {
-      color:
-        '#FFFFFF',
-      fontSize: 8,
-      fontWeight: '900',
-    },
-    dayEventBadgeTextSelected: {
-      color:
-        '#FFFFFF',
+        'rgba(255,255,255,0.86)',
     },
     statsGrid: {
       flexDirection: 'row',
@@ -1972,6 +1928,66 @@ function getStyles(
         COLORS.danger,
       fontWeight: '800',
       lineHeight: 20,
+    },
+    selectedAgendaCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      gap: 14,
+      backgroundColor:
+        COLORS.card,
+      borderRadius: 20,
+      padding: 16,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
+    selectedAgendaCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    selectedAgendaLabel: {
+      color:
+        COLORS.muted,
+      fontSize: 11,
+      fontWeight: '900',
+      textTransform:
+        'uppercase',
+      letterSpacing: 0.8,
+    },
+    selectedAgendaTitle: {
+      marginTop: 5,
+      color:
+        COLORS.text,
+      fontSize: 18,
+      fontWeight: '900',
+    },
+    selectedAgendaSubtitle: {
+      marginTop: 6,
+      color:
+        COLORS.muted,
+      fontSize: 13,
+      fontWeight: '700',
+      lineHeight: 19,
+    },
+    selectedAgendaAction: {
+      flexShrink: 0,
+      color:
+        COLORS.primary,
+      fontSize: 13,
+      fontWeight: '900',
+      paddingHorizontal: 15,
+      paddingVertical: 9,
+      borderRadius: 999,
+      overflow: 'hidden',
+      backgroundColor:
+        COLORS.primarySoft,
+      borderWidth: 1,
+      borderColor:
+        isDark
+          ? 'rgba(96,165,250,0.24)'
+          : COLORS.border,
     },
     sectionHeader: {
       flexDirection: 'row',
@@ -2196,28 +2212,32 @@ function getStyles(
     modalBackdrop: {
       flex: 1,
       justifyContent:
-        'flex-end',
+        'center',
+      alignItems:
+        'center',
+      padding: 18,
       backgroundColor:
         isDark
-          ? 'rgba(2,6,23,0.76)'
-          : 'rgba(15,23,42,0.42)',
+          ? 'rgba(7,14,27,0.68)'
+          : 'rgba(15,23,42,0.36)',
     },
     modalPanel: {
-      maxHeight: '82%',
+      width: '100%',
+      maxHeight: '78%',
       backgroundColor:
-        COLORS.background,
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
+        COLORS.card,
+      borderRadius: 26,
       padding: 18,
       borderWidth: 1,
       borderColor:
         COLORS.border,
     },
     detailPanel: {
+      width: '100%',
+      maxHeight: '78%',
       backgroundColor:
-        COLORS.background,
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
+        COLORS.card,
+      borderRadius: 26,
       padding: 20,
       borderWidth: 1,
       borderColor:
