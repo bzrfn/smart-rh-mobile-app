@@ -264,6 +264,14 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               styles={styles}
             />
             <ActionCard
+              code="CL"
+              title="Calendario laboral"
+              detail="Agenda mensual de asistencia, vacaciones e incapacidades."
+              accent="teal"
+              onPress={() => navigation.navigate('CalendarioLaboral')}
+              styles={styles}
+            />
+            <ActionCard
               code="AS"
               title="Pendientes de asistencia"
               detail={`${summary.asistenciaPendiente} registros pendientes.`}
