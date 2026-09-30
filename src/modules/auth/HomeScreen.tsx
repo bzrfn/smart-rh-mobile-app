@@ -375,6 +375,17 @@ export default function HomeScreen({ navigation }: Props) {
         group: 'trabajo',
       },
       {
+        key: 'asistente',
+        title: 'Asistente SMART RH',
+        subtitle: 'Ayuda guiada y soporte con contexto.',
+        route: 'Asistente',
+        accent: 'blue',
+        code: 'AI',
+        badge: 'Ayuda',
+        enabled: true,
+        group: 'trabajo',
+      },
+      {
         key: 'vacaciones',
         title: 'Vacaciones',
         subtitle: 'Solicitudes y días disponibles.',

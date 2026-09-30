@@ -21,6 +21,7 @@ import HomeScreen from '../modules/auth/HomeScreen';
 import QrScanScreen from '../modules/asistencia/QrScanScreen';
 import AsistenciaScreen from '../modules/asistencia/AsistenciaScreen';
 import CalendarioLaboralScreen from '../modules/calendario/CalendarioLaboralScreen';
+import AsistenteScreen from '../modules/chatbot/AsistenteScreen';
 import ContratosScreen from '../modules/contratos/ContratosScreen';
 import NominaScreen from '../modules/nomina/NominaScreen';
 import VacacionesScreen from '../modules/vacaciones/VacacionesScreen';
@@ -57,6 +58,7 @@ export type RootStackParamList = {
   QrScan: undefined;
   Asistencia: undefined;
   CalendarioLaboral: undefined;
+  Asistente: undefined;
   Contratos: undefined;
   Nomina: undefined;
   Vacaciones: undefined;
@@ -273,6 +275,7 @@ function EmployeeNavigator() {
       <Stack.Screen name="QrScan" component={QrScanScreen} options={{ title: 'Escanear QR' }} />
       <Stack.Screen name="Asistencia" component={AsistenciaScreen} options={{ title: 'Asistencia' }} />
       <Stack.Screen name="CalendarioLaboral" component={CalendarioLaboralScreen} options={{ title: 'Calendario laboral' }} />
+      <Stack.Screen name="Asistente" component={AsistenteScreen} options={{ title: 'Asistente SMART RH' }} />
       <Stack.Screen name="Contratos" component={ContratosScreen} options={{ title: 'Contratos' }} />
       <Stack.Screen name="Nomina" component={NominaScreen} options={{ title: 'Nóminas' }} />
       <Stack.Screen name="Vacaciones" component={VacacionesScreen} options={{ title: 'Vacaciones' }} />
@@ -342,6 +345,11 @@ function AdminNavigator() {
         options={{ title: 'Calendario laboral' }}
       />
       <Stack.Screen
+        name="Asistente"
+        component={AsistenteScreen}
+        options={{ title: 'Asistente SMART RH' }}
+      />
+      <Stack.Screen
         name="AdminUsuarios"
         component={AdminUsuariosScreen}
         options={{ title: 'Administrar accesos' }}
@@ -360,6 +368,11 @@ function AdminNavigator() {
         name="Notificaciones"
         component={NotificacionesScreen}
         options={{ title: 'Notificaciones admin' }}
+      />
+      <Stack.Screen
+        name="Soporte"
+        component={SoporteScreen}
+        options={{ title: 'Soporte' }}
       />
       <Stack.Screen
         name="AdminPerfil"
