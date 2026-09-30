@@ -364,6 +364,17 @@ export default function HomeScreen({ navigation }: Props) {
         lockedReason: 'Asistencia no habilitada.',
       },
       {
+        key: 'calendario-laboral',
+        title: 'Calendario laboral',
+        subtitle: 'Agenda de asistencia, vacaciones e incapacidades.',
+        route: 'CalendarioLaboral',
+        accent: 'gold',
+        code: 'CL',
+        badge: 'Agenda',
+        enabled: true,
+        group: 'trabajo',
+      },
+      {
         key: 'vacaciones',
         title: 'Vacaciones',
         subtitle: 'Solicitudes y días disponibles.',

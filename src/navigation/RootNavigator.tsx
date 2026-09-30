@@ -20,6 +20,7 @@ import HomeScreen from '../modules/auth/HomeScreen';
 
 import QrScanScreen from '../modules/asistencia/QrScanScreen';
 import AsistenciaScreen from '../modules/asistencia/AsistenciaScreen';
+import CalendarioLaboralScreen from '../modules/calendario/CalendarioLaboralScreen';
 import ContratosScreen from '../modules/contratos/ContratosScreen';
 import NominaScreen from '../modules/nomina/NominaScreen';
 import VacacionesScreen from '../modules/vacaciones/VacacionesScreen';
@@ -55,6 +56,7 @@ export type RootStackParamList = {
   AdminPerfil: undefined;
   QrScan: undefined;
   Asistencia: undefined;
+  CalendarioLaboral: undefined;
   Contratos: undefined;
   Nomina: undefined;
   Vacaciones: undefined;
@@ -270,6 +272,7 @@ function EmployeeNavigator() {
 
       <Stack.Screen name="QrScan" component={QrScanScreen} options={{ title: 'Escanear QR' }} />
       <Stack.Screen name="Asistencia" component={AsistenciaScreen} options={{ title: 'Asistencia' }} />
+      <Stack.Screen name="CalendarioLaboral" component={CalendarioLaboralScreen} options={{ title: 'Calendario laboral' }} />
       <Stack.Screen name="Contratos" component={ContratosScreen} options={{ title: 'Contratos' }} />
       <Stack.Screen name="Nomina" component={NominaScreen} options={{ title: 'Nóminas' }} />
       <Stack.Screen name="Vacaciones" component={VacacionesScreen} options={{ title: 'Vacaciones' }} />
@@ -332,6 +335,11 @@ function AdminNavigator() {
         name="VerificarCredencial"
         component={VerificarCredencialScreen}
         options={{ title: 'Verificar credencial' }}
+      />
+      <Stack.Screen
+        name="CalendarioLaboral"
+        component={CalendarioLaboralScreen}
+        options={{ title: 'Calendario laboral' }}
       />
       <Stack.Screen
         name="AdminUsuarios"
