@@ -8,6 +8,7 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -62,6 +63,12 @@ type CalendarioResumen = {
 type CalendarioScope =
   | 'admin'
   | 'empleado';
+
+
+type CalendarioSummaryKey =
+  | 'selection'
+  | 'all'
+  | CalendarioTipo;
 
 
 const EMPTY_RESUMEN: CalendarioResumen = {
@@ -479,6 +486,29 @@ function getTipoCode(
 }
 
 
+function getSummaryTitle(
+  key: CalendarioSummaryKey | null
+) {
+  if (key === 'selection') {
+    return 'Agenda seleccionada';
+  }
+
+  if (key === 'asistencia') {
+    return 'Asistencia del mes';
+  }
+
+  if (key === 'vacacion') {
+    return 'Vacaciones del mes';
+  }
+
+  if (key === 'incapacidad') {
+    return 'Incapacidades del mes';
+  }
+
+  return 'Resumen mensual';
+}
+
+
 export default function CalendarioLaboralScreen() {
   const {
     theme,
@@ -561,6 +591,22 @@ export default function CalendarioLaboralScreen() {
     setError,
   ] =
     useState('');
+
+  const [
+    activeSummary,
+    setActiveSummary,
+  ] =
+    useState<CalendarioSummaryKey | null>(
+      null
+    );
+
+  const [
+    activeEvent,
+    setActiveEvent,
+  ] =
+    useState<CalendarioEvento | null>(
+      null
+    );
 
   const range =
     useMemo(
@@ -714,6 +760,45 @@ export default function CalendarioLaboralScreen() {
         eventos,
         eventsByDate,
         selectedDate,
+      ]
+    );
+
+  const previewEvents =
+    useMemo(
+      () =>
+        selectedEvents.slice(
+          0,
+          2
+        ),
+      [
+        selectedEvents,
+      ]
+    );
+
+  const summaryEvents =
+    useMemo(
+      () => {
+        if (!activeSummary) {
+          return [];
+        }
+
+        if (activeSummary === 'selection') {
+          return selectedEvents;
+        }
+
+        if (activeSummary === 'all') {
+          return eventos;
+        }
+
+        return eventos.filter(
+          (item) =>
+            item.tipo === activeSummary
+        );
+      },
+      [
+        activeSummary,
+        eventos,
+        selectedEvents,
       ]
     );
 
@@ -965,25 +1050,49 @@ export default function CalendarioLaboralScreen() {
             label="Eventos"
             value={String(resumen.total)}
             accent="blue"
+            hint="Resumen mensual"
             styles={styles}
+            onPress={() =>
+              setActiveSummary(
+                'all'
+              )
+            }
           />
           <StatCard
             label="Asistencia"
             value={String(resumen.asistencia)}
             accent="teal"
+            hint="Ver registros"
             styles={styles}
+            onPress={() =>
+              setActiveSummary(
+                'asistencia'
+              )
+            }
           />
           <StatCard
             label="Vacaciones"
             value={String(resumen.vacacion)}
             accent="gold"
+            hint="Ver periodos"
             styles={styles}
+            onPress={() =>
+              setActiveSummary(
+                'vacacion'
+              )
+            }
           />
           <StatCard
             label="Incapacidades"
             value={String(resumen.incapacidad)}
             accent="danger"
+            hint="Ver revisiones"
             styles={styles}
+            onPress={() =>
+              setActiveSummary(
+                'incapacidad'
+              )
+            }
           />
         </View>
 
@@ -1008,29 +1117,44 @@ export default function CalendarioLaboralScreen() {
           <View>
             <Text style={styles.sectionTitle}>
               {selectedDate
-                ? `Eventos del ${formatDate(selectedDate)}`
-                : 'Eventos del mes'}
+                ? `Agenda del ${formatDate(selectedDate)}`
+                : 'Agenda del mes'}
             </Text>
             <Text style={styles.sectionSubtitle}>
-              {selectedEvents.length} registro(s) encontrados.
+              Toca una tarjeta para ver su detalle completo.
             </Text>
           </View>
 
-          {selectedDate ? (
+          {selectedEvents.length > 0 ? (
             <Pressable
-              style={styles.clearSelectionButton}
+              style={styles.openSelectionButton}
               onPress={() =>
-                setSelectedDate(
-                  null
+                setActiveSummary(
+                  'selection'
                 )
               }
             >
               <Text style={styles.clearSelectionText}>
-                Ver mes
+                Abrir
               </Text>
             </Pressable>
           ) : null}
         </View>
+
+        {selectedDate ? (
+          <Pressable
+            style={styles.monthLinkButton}
+            onPress={() =>
+              setSelectedDate(
+                null
+              )
+            }
+          >
+            <Text style={styles.monthLinkText}>
+              Ver agenda mensual completa
+            </Text>
+          </Pressable>
+        ) : null}
 
         {!loading &&
         selectedEvents.length === 0 ? (
@@ -1045,18 +1169,64 @@ export default function CalendarioLaboralScreen() {
         ) : null}
 
         <View style={styles.eventList}>
-          {selectedEvents.map(
+          {previewEvents.map(
             (item) => (
               <EventCard
                 key={`${item.id}-${selectedDate || 'month'}`}
                 item={item}
                 scope={scope}
                 styles={styles}
+                onPress={() =>
+                  setActiveEvent(
+                    item
+                  )
+                }
               />
             )
           )}
         </View>
+
+        {selectedEvents.length > previewEvents.length ? (
+          <Pressable
+            style={styles.moreEventsButton}
+            onPress={() =>
+              setActiveSummary(
+                'selection'
+              )
+            }
+          >
+            <Text style={styles.moreEventsText}>
+              Ver {selectedEvents.length - previewEvents.length} registro(s) más
+            </Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
+
+      <SummaryModal
+        visible={!!activeSummary}
+        title={getSummaryTitle(activeSummary)}
+        subtitle={formatMonthTitle(currentMonth)}
+        events={summaryEvents}
+        scope={scope}
+        styles={styles}
+        onClose={() =>
+          setActiveSummary(
+            null
+          )
+        }
+        onSelectEvent={setActiveEvent}
+      />
+
+      <EventDetailModal
+        event={activeEvent}
+        scope={scope}
+        styles={styles}
+        onClose={() =>
+          setActiveEvent(
+            null
+          )
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -1066,36 +1236,57 @@ function StatCard({
   label,
   value,
   accent,
+  hint,
   styles,
+  onPress,
 }: {
   label: string;
   value: string;
+  hint: string;
   accent:
     | 'blue'
     | 'teal'
     | 'gold'
     | 'danger';
   styles: any;
+  onPress: () => void;
 }) {
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       style={[
         styles.statCard,
-        styles[`${accent}Border`],
+        styles[`${accent}SoftBg`],
       ]}
     >
-      <Text
+      <View
         style={[
-          styles.statValue,
-          styles[`${accent}Text`],
+          styles.statAccent,
+          styles[`${accent}SolidBg`],
         ]}
-      >
-        {value}
+      />
+
+      <View style={styles.statContent}>
+        <Text
+          style={[
+            styles.statValue,
+            styles[`${accent}Text`],
+          ]}
+        >
+          {value}
+        </Text>
+        <Text style={styles.statLabel}>
+          {label}
+        </Text>
+        <Text style={styles.statHint}>
+          {hint}
+        </Text>
+      </View>
+
+      <Text style={styles.statArrow}>
+        →
       </Text>
-      <Text style={styles.statLabel}>
-        {label}
-      </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -1104,10 +1295,12 @@ function EventCard({
   item,
   scope,
   styles,
+  onPress,
 }: {
   item: CalendarioEvento;
   scope: CalendarioScope;
   styles: any;
+  onPress: () => void;
 }) {
   const accent =
     item.tipo === 'asistencia'
@@ -1117,12 +1310,19 @@ function EventCard({
         : 'danger';
 
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       style={[
         styles.eventCard,
-        styles[`${accent}Border`],
       ]}
     >
+      <View
+        style={[
+          styles.eventAccentLine,
+          styles[`${accent}SolidBg`],
+        ]}
+      />
+
       <View style={styles.eventTopRow}>
         <View
           style={[
@@ -1181,6 +1381,212 @@ function EventCard({
       <Text style={styles.eventDescription}>
         {item.descripcion}
       </Text>
+
+      <Text style={styles.eventActionText}>
+        Ver detalle
+      </Text>
+    </Pressable>
+  );
+}
+
+
+function SummaryModal({
+  visible,
+  title,
+  subtitle,
+  events,
+  scope,
+  styles,
+  onClose,
+  onSelectEvent,
+}: {
+  visible: boolean;
+  title: string;
+  subtitle: string;
+  events: CalendarioEvento[];
+  scope: CalendarioScope;
+  styles: any;
+  onClose: () => void;
+  onSelectEvent: (event: CalendarioEvento) => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalPanel}>
+          <View style={styles.modalHandle} />
+
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>
+                {title}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                {subtitle} · {events.length} registro(s)
+              </Text>
+            </View>
+
+            <Pressable
+              style={styles.modalCloseButton}
+              onPress={onClose}
+            >
+              <Text style={styles.modalCloseText}>
+                Cerrar
+              </Text>
+            </Pressable>
+          </View>
+
+          {events.length === 0 ? (
+            <View style={styles.modalEmptyCard}>
+              <Text style={styles.emptyTitle}>
+                Sin registros
+              </Text>
+              <Text style={styles.emptyText}>
+                No hay eventos para esta selección.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalList}
+              showsVerticalScrollIndicator={false}
+            >
+              {events.map(
+                (item) => (
+                  <EventCard
+                    key={`${item.id}-modal`}
+                    item={item}
+                    scope={scope}
+                    styles={styles}
+                    onPress={() =>
+                      onSelectEvent(
+                        item
+                      )
+                    }
+                  />
+                )
+              )}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+
+function EventDetailModal({
+  event,
+  scope,
+  styles,
+  onClose,
+}: {
+  event: CalendarioEvento | null;
+  scope: CalendarioScope;
+  styles: any;
+  onClose: () => void;
+}) {
+  if (!event) {
+    return null;
+  }
+
+  return (
+    <Modal
+      visible={!!event}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalBackdrop}>
+        <View style={styles.detailPanel}>
+          <View style={styles.modalHandle} />
+
+          <View style={styles.detailHeader}>
+            <View style={styles.detailTypePill}>
+              <Text style={styles.detailTypeText}>
+                {getTipoCode(event.tipo)}
+              </Text>
+            </View>
+
+            <Pressable
+              style={styles.modalCloseButton}
+              onPress={onClose}
+            >
+              <Text style={styles.modalCloseText}>
+                Cerrar
+              </Text>
+            </Pressable>
+          </View>
+
+          <Text style={styles.detailTypeLabel}>
+            {getTipoLabel(event.tipo)}
+          </Text>
+          <Text style={styles.detailTitle}>
+            {event.titulo}
+          </Text>
+
+          <View style={styles.detailStatusRow}>
+            <Text style={styles.detailDate}>
+              {formatDateRange(
+                event.fecha_inicio,
+                event.fecha_fin
+              )}
+            </Text>
+
+            <View style={styles.statusPill}>
+              <Text style={styles.statusPillText}>
+                {getEstadoLabel(
+                  event.estado
+                )}
+              </Text>
+            </View>
+          </View>
+
+          {scope === 'admin' ? (
+            <DetailRow
+              label="Empleado"
+              value={`${event.empleado_nombre}${
+                event.empleado_correo
+                  ? ` · ${event.empleado_correo}`
+                  : ''
+              }`}
+              styles={styles}
+            />
+          ) : null}
+
+          <DetailRow
+            label="Descripción"
+            value={event.descripcion || 'Sin descripción'}
+            styles={styles}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+
+function DetailRow({
+  label,
+  value,
+  styles,
+}: {
+  label: string;
+  value: string;
+  styles: any;
+}) {
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailRowLabel}>
+        {label}
+      </Text>
+      <Text style={styles.detailRowValue}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -1191,33 +1597,33 @@ function getColors(
 ) {
   return {
     background:
-      isDark ? '#07111F' : '#F4F7FB',
+      isDark ? '#07111F' : '#F5F7FB',
     card:
-      isDark ? '#0F1B2D' : '#FFFFFF',
+      isDark ? '#0E1A2B' : '#FFFFFF',
     cardSoft:
-      isDark ? '#111F33' : '#F9FBFD',
+      isDark ? '#132238' : '#F7FAFD',
     primary:
-      isDark ? '#38BDF8' : '#0A57A4',
+      isDark ? '#7DD3FC' : '#0A57A4',
     primarySoft:
-      isDark ? 'rgba(56,189,248,0.14)' : 'rgba(10,87,164,0.10)',
+      isDark ? 'rgba(125,211,252,0.13)' : 'rgba(10,87,164,0.08)',
     teal:
-      isDark ? '#2DD4BF' : '#22B8B0',
+      isDark ? '#5EEAD4' : '#0F766E',
     tealBg:
-      isDark ? 'rgba(45,212,191,0.14)' : 'rgba(34,184,176,0.12)',
+      isDark ? 'rgba(94,234,212,0.12)' : 'rgba(15,118,110,0.08)',
     gold:
-      isDark ? '#FACC15' : '#B7791F',
+      isDark ? '#FDE68A' : '#B7791F',
     goldBg:
-      isDark ? 'rgba(250,204,21,0.14)' : 'rgba(183,121,31,0.12)',
+      isDark ? 'rgba(253,230,138,0.12)' : 'rgba(183,121,31,0.08)',
     danger:
       isDark ? '#FCA5A5' : '#B42318',
     dangerBg:
-      isDark ? 'rgba(248,113,113,0.12)' : 'rgba(180,35,24,0.08)',
+      isDark ? 'rgba(252,165,165,0.11)' : 'rgba(180,35,24,0.07)',
     text:
       isDark ? '#F8FAFC' : '#0F172A',
     muted:
-      isDark ? '#9FB0C4' : '#5B6B81',
+      isDark ? '#A8B7CA' : '#5B6B81',
     border:
-      isDark ? '#26364D' : '#D9E1EC',
+      isDark ? '#24344A' : '#DDE5EF',
   };
 }
 
@@ -1474,11 +1880,28 @@ function getStyles(
     },
     statCard: {
       width: '48%',
-      backgroundColor:
-        COLORS.card,
+      minHeight: 112,
       borderRadius: 18,
+      overflow: 'hidden',
       padding: 16,
+      paddingLeft: 18,
       borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      position: 'relative',
+    },
+    statAccent: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 5,
+    },
+    statContent: {
+      flex: 1,
     },
     statValue: {
       fontSize: 26,
@@ -1489,6 +1912,19 @@ function getStyles(
       color:
         COLORS.text,
       fontSize: 13,
+      fontWeight: '900',
+    },
+    statHint: {
+      marginTop: 5,
+      color:
+        COLORS.muted,
+      fontSize: 11,
+      fontWeight: '800',
+    },
+    statArrow: {
+      color:
+        COLORS.muted,
+      fontSize: 18,
       fontWeight: '900',
     },
     centerCard: {
@@ -1549,7 +1985,34 @@ function getStyles(
       backgroundColor:
         COLORS.primarySoft,
     },
+    openSelectionButton: {
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor:
+        COLORS.primarySoft,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
     clearSelectionText: {
+      color:
+        COLORS.primary,
+      fontSize: 12,
+      fontWeight: '900',
+    },
+    monthLinkButton: {
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      backgroundColor:
+        COLORS.card,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
+    monthLinkText: {
       color:
         COLORS.primary,
       fontSize: 12,
@@ -1584,7 +2047,19 @@ function getStyles(
         COLORS.card,
       borderRadius: 20,
       padding: 16,
+      paddingLeft: 18,
       borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    eventAccentLine: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 5,
     },
     eventTopRow: {
       flexDirection: 'row',
@@ -1658,6 +2133,236 @@ function getStyles(
         COLORS.muted,
       fontSize: 13,
       lineHeight: 20,
+    },
+    eventActionText: {
+      marginTop: 12,
+      color:
+        COLORS.primary,
+      fontSize: 12,
+      fontWeight: '900',
+    },
+    moreEventsButton: {
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      borderRadius: 16,
+      paddingVertical: 14,
+      backgroundColor:
+        COLORS.primarySoft,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
+    moreEventsText: {
+      color:
+        COLORS.primary,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    modalBackdrop: {
+      flex: 1,
+      justifyContent:
+        'flex-end',
+      backgroundColor:
+        isDark
+          ? 'rgba(2,6,23,0.76)'
+          : 'rgba(15,23,42,0.42)',
+    },
+    modalPanel: {
+      maxHeight: '82%',
+      backgroundColor:
+        COLORS.background,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      padding: 18,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
+    detailPanel: {
+      backgroundColor:
+        COLORS.background,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      padding: 20,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
+    modalHandle: {
+      alignSelf: 'center',
+      width: 42,
+      height: 5,
+      borderRadius: 999,
+      backgroundColor:
+        COLORS.border,
+      marginBottom: 16,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent:
+        'space-between',
+      gap: 12,
+      marginBottom: 14,
+    },
+    modalTitle: {
+      color:
+        COLORS.text,
+      fontSize: 22,
+      fontWeight: '900',
+    },
+    modalSubtitle: {
+      marginTop: 5,
+      color:
+        COLORS.muted,
+      fontSize: 13,
+      fontWeight: '800',
+      textTransform: 'capitalize',
+    },
+    modalCloseButton: {
+      borderRadius: 999,
+      paddingHorizontal: 13,
+      paddingVertical: 8,
+      backgroundColor:
+        COLORS.card,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
+    modalCloseText: {
+      color:
+        COLORS.primary,
+      fontSize: 12,
+      fontWeight: '900',
+    },
+    modalScroll: {
+      maxHeight: 520,
+    },
+    modalList: {
+      gap: 12,
+      paddingBottom: 12,
+    },
+    modalEmptyCard: {
+      backgroundColor:
+        COLORS.card,
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
+    detailHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      marginBottom: 18,
+    },
+    detailTypePill: {
+      width: 48,
+      height: 48,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      backgroundColor:
+        COLORS.primarySoft,
+    },
+    detailTypeText: {
+      color:
+        COLORS.primary,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    detailTypeLabel: {
+      color:
+        COLORS.muted,
+      fontSize: 12,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    detailTitle: {
+      marginTop: 6,
+      color:
+        COLORS.text,
+      fontSize: 24,
+      fontWeight: '900',
+      lineHeight: 30,
+    },
+    detailStatusRow: {
+      marginTop: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      gap: 12,
+    },
+    detailDate: {
+      flex: 1,
+      color:
+        COLORS.primary,
+      fontSize: 14,
+      fontWeight: '900',
+    },
+    detailRow: {
+      marginTop: 14,
+      backgroundColor:
+        COLORS.card,
+      borderRadius: 18,
+      padding: 14,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
+    detailRowLabel: {
+      color:
+        COLORS.muted,
+      fontSize: 12,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+    },
+    detailRowValue: {
+      marginTop: 6,
+      color:
+        COLORS.text,
+      fontSize: 14,
+      fontWeight: '800',
+      lineHeight: 21,
+    },
+    blueSoftBg: {
+      backgroundColor:
+        COLORS.primarySoft,
+    },
+    tealSoftBg: {
+      backgroundColor:
+        COLORS.tealBg,
+    },
+    goldSoftBg: {
+      backgroundColor:
+        COLORS.goldBg,
+    },
+    dangerSoftBg: {
+      backgroundColor:
+        COLORS.dangerBg,
+    },
+    blueSolidBg: {
+      backgroundColor:
+        COLORS.primary,
+    },
+    tealSolidBg: {
+      backgroundColor:
+        COLORS.teal,
+    },
+    goldSolidBg: {
+      backgroundColor:
+        COLORS.gold,
+    },
+    dangerSolidBg: {
+      backgroundColor:
+        COLORS.danger,
     },
     blueBorder: {
       borderColor:
