@@ -276,6 +276,7 @@ export default function MaxAssistantFloating() {
         id: buildId(),
         author: 'user',
         text: cleanMessage,
+        createdAt: Date.now(),
       },
     ]);
 
@@ -297,6 +298,7 @@ export default function MaxAssistantFloating() {
           text:
             response?.respuesta ||
             'No pude generar una respuesta segura. Dame un poco más de contexto.',
+          createdAt: Date.now(),
           response,
         },
       ]);
@@ -337,6 +339,7 @@ export default function MaxAssistantFloating() {
           text: ticketId
             ? `Listo. Creé el ticket con folio ${ticketId}. Puedes darle seguimiento desde Soporte.`
             : 'Listo. Envié la consulta a soporte con el contexto disponible.',
+          createdAt: Date.now(),
         },
       ]);
     } catch (err: any) {
@@ -372,7 +375,7 @@ export default function MaxAssistantFloating() {
         onMoveShouldSetPanResponder: (_, gesture) =>
           Math.abs(gesture.dx) > 3 || Math.abs(gesture.dy) > 3,
         onPanResponderGrant: () => {
-          panStartRef.current = buttonPosition;
+          panStartRef.current = positionRef.current;
           movedRef.current = false;
           setDragging(true);
         },
@@ -418,7 +421,7 @@ export default function MaxAssistantFloating() {
           setDragging(false);
         },
       }),
-    [buttonPosition, screenSize]
+    [screenSize]
   );
 
   return (
@@ -538,27 +541,6 @@ export default function MaxAssistantFloating() {
                     <Text style={styles.loadingText}>Max está revisando...</Text>
                   </View>
                 ) : null}
-
-                {suggestions.length ? (
-                  <View style={styles.suggestionSection}>
-                    <Text style={styles.suggestionLabel}>Preguntas rápidas</Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.suggestionWrap}
-                    >
-                      {suggestions.slice(0, 5).map((item) => (
-                        <Pressable
-                          key={item}
-                          style={styles.suggestionButton}
-                          onPress={() => sendMessage(item)}
-                        >
-                          <Text style={styles.suggestionText}>{item}</Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  </View>
-                ) : null}
               </ScrollView>
 
               {error ? (
@@ -567,41 +549,67 @@ export default function MaxAssistantFloating() {
                 </View>
               ) : null}
 
-              <View style={styles.inputRow}>
-                <TextInput
-                  style={styles.input}
-                  value={message}
-                  onChangeText={setMessage}
-                  placeholder="Pregúntame..."
-                  placeholderTextColor={colors.muted}
-                  multiline
-                />
-                <Pressable
-                  style={[
-                    styles.sendButton,
-                    (!message.trim() || loading) && styles.disabledButton,
-                  ]}
-                  disabled={!message.trim() || loading}
-                  onPress={() => sendMessage()}
-                >
-                  <Text style={styles.sendButtonText}>Enviar</Text>
-                </Pressable>
-              </View>
+              <View style={styles.composer}>
+                {suggestions.length ? (
+                  <View style={styles.suggestionSection}>
+                    <Text style={styles.suggestionLabel}>Sugerencias</Text>
+                    <View style={styles.suggestionGrid}>
+                      {suggestions.slice(0, 3).map((item) => (
+                        <Pressable
+                          key={item}
+                          style={styles.suggestionButton}
+                          onPress={() => sendMessage(item)}
+                        >
+                          <Text style={styles.suggestionText} numberOfLines={2}>
+                            {item}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
 
-              {lastQuestion ? (
-                <Pressable
-                  style={[
-                    styles.ticketButton,
-                    ticketLoading && styles.disabledButton,
-                  ]}
-                  disabled={ticketLoading}
-                  onPress={createTicket}
-                >
-                  <Text style={styles.ticketButtonText}>
-                    {ticketLoading ? 'Creando ticket...' : 'Crear ticket con contexto'}
-                  </Text>
-                </Pressable>
-              ) : null}
+                <View style={styles.inputRow}>
+                  <View style={styles.inputTool}>
+                    <Text style={styles.inputToolText}>+</Text>
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    value={message}
+                    onChangeText={setMessage}
+                    placeholder="Pregúntame"
+                    placeholderTextColor={colors.muted}
+                    multiline
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Enviar mensaje a Max"
+                    style={[
+                      styles.sendButton,
+                      (!message.trim() || loading) && styles.disabledButton,
+                    ]}
+                    disabled={!message.trim() || loading}
+                    onPress={() => sendMessage()}
+                  >
+                    <Text style={styles.sendButtonText}>↑</Text>
+                  </Pressable>
+                </View>
+
+                {lastQuestion ? (
+                  <Pressable
+                    style={[
+                      styles.ticketButton,
+                      ticketLoading && styles.disabledButton,
+                    ]}
+                    disabled={ticketLoading}
+                    onPress={createTicket}
+                  >
+                    <Text style={styles.ticketButtonText}>
+                      {ticketLoading ? 'Creando ticket...' : 'Crear ticket con contexto'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
@@ -799,6 +807,15 @@ function getStyles(isDark: boolean) {
       color: COLORS.muted,
       fontWeight: '800',
     },
+    composer: {
+      gap: 10,
+      paddingHorizontal: 12,
+      paddingTop: 10,
+      paddingBottom: 12,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
+      backgroundColor: COLORS.card,
+    },
     errorCard: {
       marginHorizontal: 12,
       marginTop: 8,
@@ -815,27 +832,28 @@ function getStyles(isDark: boolean) {
       lineHeight: 17,
     },
     suggestionSection: {
-      alignSelf: 'stretch',
-      gap: 7,
-      marginTop: 2,
+      gap: 8,
     },
     suggestionLabel: {
       color: COLORS.muted,
-      fontSize: 11,
-      fontWeight: '800',
-      paddingHorizontal: 2,
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
     },
-    suggestionWrap: {
-      gap: 7,
-      paddingRight: 4,
-      paddingBottom: 2,
+    suggestionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
     },
     suggestionButton: {
-      maxWidth: 174,
-      borderRadius: 999,
+      minHeight: 42,
+      width: '48%',
+      justifyContent: 'center',
+      borderRadius: 16,
       paddingHorizontal: 11,
       paddingVertical: 8,
-      backgroundColor: COLORS.tealSoft,
+      backgroundColor: COLORS.cardSoft,
       borderWidth: 1,
       borderColor: COLORS.border,
     },
@@ -843,52 +861,67 @@ function getStyles(isDark: boolean) {
       color: COLORS.text,
       fontSize: 11,
       lineHeight: 15,
-      fontWeight: '700',
+      fontWeight: '800',
     },
     inputRow: {
       flexDirection: 'row',
-      alignItems: 'flex-end',
+      alignItems: 'center',
       gap: 8,
-      paddingHorizontal: 12,
-      paddingTop: 10,
-      paddingBottom: 10,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      borderRadius: 24,
+      padding: 6,
+      backgroundColor: COLORS.cardSoft,
+    },
+    inputTool: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.primarySoft,
+    },
+    inputToolText: {
+      color: COLORS.primary,
+      fontSize: 22,
+      fontWeight: '500',
+      lineHeight: 24,
     },
     input: {
       flex: 1,
       maxHeight: 84,
-      minHeight: 42,
+      minHeight: 36,
       color: COLORS.text,
       fontSize: 13,
       textAlignVertical: 'top',
-      backgroundColor: COLORS.cardSoft,
-      borderRadius: 17,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      borderWidth: 1,
-      borderColor: COLORS.border,
+      backgroundColor: 'transparent',
+      paddingHorizontal: 4,
+      paddingVertical: 8,
     },
     sendButton: {
-      minWidth: 72,
-      borderRadius: 15,
-      paddingVertical: 12,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
       alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor: COLORS.primary,
     },
     sendButtonText: {
       color: COLORS.white,
-      fontSize: 12,
+      fontSize: 20,
       fontWeight: '900',
+      lineHeight: 22,
     },
     ticketButton: {
-      marginHorizontal: 12,
-      marginBottom: 12,
       borderRadius: 16,
-      paddingVertical: 11,
+      paddingVertical: 10,
       alignItems: 'center',
-      backgroundColor: COLORS.teal,
+      backgroundColor: COLORS.tealSoft,
+      borderWidth: 1,
+      borderColor: COLORS.border,
     },
     ticketButtonText: {
-      color: COLORS.white,
+      color: COLORS.teal,
       fontSize: 12,
       fontWeight: '900',
     },
