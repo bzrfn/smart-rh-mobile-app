@@ -173,6 +173,7 @@ export default function MaxAssistantFloating() {
     },
   ]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const [message, setMessage] = useState('');
   const [lastQuestion, setLastQuestion] = useState('');
   const [loading, setLoading] = useState(false);
@@ -208,12 +209,14 @@ export default function MaxAssistantFloating() {
     try {
       const { data } = await api.get('/chatbot/sugerencias');
       setSuggestions(Array.isArray(data?.sugerencias) ? data.sugerencias : []);
+      setShowSuggestions(true);
     } catch {
       setSuggestions([
         'Tengo un problema',
         'Revisar mi calendario',
         'Ayuda con asistencia',
       ]);
+      setShowSuggestions(true);
     }
   }
 
@@ -277,9 +280,14 @@ export default function MaxAssistantFloating() {
 
     if (!cleanMessage || loading) return;
 
+    const isQuickSuggestion = Boolean(nextMessage) && suggestions.some(
+      (item) => item.trim().toLowerCase() === cleanMessage.toLowerCase()
+    );
+
     setOpen(true);
     setMessage('');
     setError('');
+    setShowSuggestions(isQuickSuggestion);
     setLastQuestion(cleanMessage);
     setMessages((current) => [
       ...current,
@@ -314,8 +322,10 @@ export default function MaxAssistantFloating() {
         },
       ]);
 
-      if (Array.isArray(response?.sugerencias)) {
+      if (isQuickSuggestion && Array.isArray(response?.sugerencias)) {
         setSuggestions(response.sugerencias);
+      } else if (!isQuickSuggestion) {
+        setSuggestions([]);
       }
     } catch (err: any) {
       setError(
@@ -561,7 +571,7 @@ export default function MaxAssistantFloating() {
               ) : null}
 
               <View style={styles.composer}>
-                {suggestions.length ? (
+                {showSuggestions && suggestions.length ? (
                   <View style={styles.suggestionSection}>
                     <Text style={styles.suggestionLabel}>Sugerencias</Text>
                     <View style={styles.suggestionGrid}>
@@ -895,12 +905,17 @@ function getStyles(isDark: boolean) {
       paddingVertical: 8,
     },
     sendButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: COLORS.primary,
+      backgroundColor: COLORS.primaryStrong,
+      shadowColor: COLORS.primary,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.24,
+      shadowRadius: 12,
+      elevation: 4,
     },
     sendButtonText: {
       color: COLORS.white,
