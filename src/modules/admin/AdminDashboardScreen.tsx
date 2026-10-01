@@ -272,14 +272,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               styles={styles}
             />
             <ActionCard
-              code="AI"
-              title="Asistente SMART RH"
-              detail="Ayuda administrativa y escalamiento a soporte."
-              accent="teal"
-              onPress={() => navigation.navigate('Asistente')}
-              styles={styles}
-            />
-            <ActionCard
               code="AS"
               title="Pendientes de asistencia"
               detail={`${summary.asistenciaPendiente} registros pendientes.`}
