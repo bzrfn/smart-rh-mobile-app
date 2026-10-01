@@ -417,7 +417,6 @@ export default function MaxAssistantFloating() {
         >
           <Text style={styles.floatingBrand}>SRH</Text>
           <Text style={styles.floatingIcon}>Max</Text>
-          <Text style={styles.floatingHint}>Mover</Text>
           <View style={styles.floatingDot} />
         </View>
       ) : null}
@@ -625,14 +624,6 @@ function getStyles(isDark: boolean) {
       fontWeight: '900',
       letterSpacing: 0.2,
       lineHeight: 20,
-    },
-    floatingHint: {
-      marginTop: 3,
-      color: 'rgba(255,255,255,0.86)',
-      fontSize: 8,
-      fontWeight: '900',
-      letterSpacing: 0.8,
-      textTransform: 'uppercase',
     },
     floatingDot: {
       position: 'absolute',
