@@ -305,6 +305,7 @@ export default function MaxAssistantFloating() {
       const { data } = await api.post('/chatbot/mensaje', {
         mensaje: cleanMessage,
         historial: historyPayload,
+        canal: 'mobile',
       });
 
       const response = data?.respuesta as ChatbotResponse;
@@ -347,6 +348,7 @@ export default function MaxAssistantFloating() {
       const { data } = await api.post('/chatbot/mensaje', {
         mensaje: lastQuestion,
         historial: historyPayload,
+        canal: 'mobile',
         crear_ticket: true,
       });
 
