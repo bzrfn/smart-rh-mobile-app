@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
   KeyboardAvoidingView,
   Modal,
   PanResponder,
@@ -53,7 +54,8 @@ type FloatingPosition = {
 };
 
 const POSITION_STORAGE_KEY = 'smart_rh_max_mobile_position';
-const FLOATING_SIZE = 74;
+const MAX_ICON = require('../../../assets/max-icon.png');
+const FLOATING_SIZE = 78;
 const EDGE_GAP = 16;
 
 function buildId() {
@@ -415,9 +417,7 @@ export default function MaxAssistantFloating() {
           ]}
           {...panResponder.panHandlers}
         >
-          <Text style={styles.floatingBrand}>SRH</Text>
-          <Text style={styles.floatingIcon}>Max</Text>
-          <View style={styles.floatingDot} />
+          <Image source={MAX_ICON} style={styles.floatingLogoImage} />
         </View>
       ) : null}
 
@@ -438,8 +438,7 @@ export default function MaxAssistantFloating() {
             >
               <View style={styles.header}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarBrand}>SRH</Text>
-                  <Text style={styles.avatarText}>Max</Text>
+                  <Image source={MAX_ICON} style={styles.avatarImage} />
                 </View>
                 <View style={styles.headerCopy}>
                   <Text style={styles.kicker}>Asistente interno</Text>
@@ -594,16 +593,14 @@ function getStyles(isDark: boolean) {
       position: 'absolute',
       width: FLOATING_SIZE,
       height: FLOATING_SIZE,
-      borderRadius: 26,
+      borderRadius: 28,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: COLORS.primary,
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.88)',
+      backgroundColor: 'transparent',
       shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 14 },
-      shadowOpacity: 0.24,
-      shadowRadius: 22,
+      shadowOffset: { width: 0, height: 16 },
+      shadowOpacity: isDark ? 0.34 : 0.2,
+      shadowRadius: 24,
       elevation: 14,
       zIndex: 50,
     },
@@ -611,30 +608,10 @@ function getStyles(isDark: boolean) {
       transform: [{ scale: 0.98 }],
       opacity: 0.92,
     },
-    floatingBrand: {
-      color: COLORS.white,
-      fontSize: 10,
-      fontWeight: '900',
-      letterSpacing: 1.4,
-      marginBottom: 2,
-    },
-    floatingIcon: {
-      color: COLORS.white,
-      fontSize: 18,
-      fontWeight: '900',
-      letterSpacing: 0.2,
-      lineHeight: 20,
-    },
-    floatingDot: {
-      position: 'absolute',
-      right: 8,
-      top: 8,
-      width: 14,
-      height: 14,
-      borderRadius: 7,
-      backgroundColor: COLORS.teal,
-      borderWidth: 3,
-      borderColor: COLORS.white,
+    floatingLogoImage: {
+      width: FLOATING_SIZE,
+      height: FLOATING_SIZE,
+      borderRadius: 28,
     },
     modalRoot: {
       flex: 1,
@@ -673,22 +650,17 @@ function getStyles(isDark: boolean) {
       borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: COLORS.primary,
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.78)',
+      backgroundColor: 'transparent',
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: isDark ? 0.26 : 0.14,
+      shadowRadius: 14,
+      elevation: 8,
     },
-    avatarBrand: {
-      color: COLORS.white,
-      fontSize: 10,
-      fontWeight: '900',
-      letterSpacing: 1.3,
-      marginBottom: 3,
-    },
-    avatarText: {
-      color: COLORS.white,
-      fontSize: 16,
-      fontWeight: '900',
-      letterSpacing: 0.2,
+    avatarImage: {
+      width: 58,
+      height: 58,
+      borderRadius: 20,
     },
     headerCopy: {
       flex: 1,
