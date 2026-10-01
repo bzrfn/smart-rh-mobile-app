@@ -169,7 +169,7 @@ export default function MaxAssistantFloating() {
       id: buildId(),
       author: 'assistant',
       text:
-        'Hola, soy Max. Cuéntame qué intentas resolver en SMART RH y te ayudo con pasos concretos.',
+        'Hola, soy Max. Cuéntame qué necesitas resolver en SMART RH y lo revisamos paso a paso.',
     },
   ]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -199,9 +199,9 @@ export default function MaxAssistantFloating() {
       setSuggestions(Array.isArray(data?.sugerencias) ? data.sugerencias : []);
     } catch {
       setSuggestions([
-        'Max, no puedo registrar mi asistencia',
-        'Quiero revisar mi calendario laboral',
-        'Necesito levantar un ticket',
+        'No puedo registrar asistencia',
+        'Ver calendario laboral',
+        'Crear ticket de soporte',
       ]);
     }
   }
@@ -538,6 +538,27 @@ export default function MaxAssistantFloating() {
                     <Text style={styles.loadingText}>Max está revisando...</Text>
                   </View>
                 ) : null}
+
+                {suggestions.length ? (
+                  <View style={styles.suggestionSection}>
+                    <Text style={styles.suggestionLabel}>Preguntas rápidas</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.suggestionWrap}
+                    >
+                      {suggestions.slice(0, 5).map((item) => (
+                        <Pressable
+                          key={item}
+                          style={styles.suggestionButton}
+                          onPress={() => sendMessage(item)}
+                        >
+                          <Text style={styles.suggestionText}>{item}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                ) : null}
               </ScrollView>
 
               {error ? (
@@ -546,30 +567,12 @@ export default function MaxAssistantFloating() {
                 </View>
               ) : null}
 
-              {suggestions.length ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.suggestionWrap}
-                >
-                  {suggestions.slice(0, 5).map((item) => (
-                    <Pressable
-                      key={item}
-                      style={styles.suggestionButton}
-                      onPress={() => sendMessage(item)}
-                    >
-                      <Text style={styles.suggestionText}>{item}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              ) : null}
-
               <View style={styles.inputRow}>
                 <TextInput
                   style={styles.input}
                   value={message}
                   onChangeText={setMessage}
-                  placeholder="Escribe tu duda..."
+                  placeholder="Pregúntame..."
                   placeholderTextColor={colors.muted}
                   multiline
                 />
@@ -585,18 +588,20 @@ export default function MaxAssistantFloating() {
                 </Pressable>
               </View>
 
-              <Pressable
-                style={[
-                  styles.ticketButton,
-                  (!lastQuestion || ticketLoading) && styles.disabledButton,
-                ]}
-                disabled={!lastQuestion || ticketLoading}
-                onPress={createTicket}
-              >
-                <Text style={styles.ticketButtonText}>
-                  {ticketLoading ? 'Creando ticket...' : 'Crear ticket con contexto'}
-                </Text>
-              </Pressable>
+              {lastQuestion ? (
+                <Pressable
+                  style={[
+                    styles.ticketButton,
+                    ticketLoading && styles.disabledButton,
+                  ]}
+                  disabled={ticketLoading}
+                  onPress={createTicket}
+                >
+                  <Text style={styles.ticketButtonText}>
+                    {ticketLoading ? 'Creando ticket...' : 'Crear ticket con contexto'}
+                  </Text>
+                </Pressable>
+              ) : null}
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
@@ -640,11 +645,14 @@ function getStyles(isDark: boolean) {
       flex: 1,
       justifyContent: 'flex-end',
       backgroundColor: COLORS.backdrop,
-      padding: 14,
+      paddingHorizontal: 10,
+      paddingTop: 38,
+      paddingBottom: 10,
     },
     panel: {
-      maxHeight: '80%',
-      borderRadius: 28,
+      height: '88%',
+      maxHeight: '90%',
+      borderRadius: 26,
       overflow: 'hidden',
       backgroundColor: COLORS.card,
       borderWidth: 1,
@@ -658,15 +666,15 @@ function getStyles(isDark: boolean) {
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
-      padding: 17,
+      gap: 11,
+      padding: 14,
       borderBottomWidth: 1,
       borderBottomColor: COLORS.border,
       backgroundColor: COLORS.cardSoft,
     },
     avatar: {
-      width: 58,
-      height: 58,
+      width: 48,
+      height: 48,
       borderRadius: 999,
       alignItems: 'center',
       justifyContent: 'center',
@@ -678,8 +686,8 @@ function getStyles(isDark: boolean) {
       elevation: 8,
     },
     avatarImage: {
-      width: 58,
-      height: 58,
+      width: 48,
+      height: 48,
       borderRadius: 999,
     },
     headerCopy: {
@@ -687,25 +695,25 @@ function getStyles(isDark: boolean) {
     },
     kicker: {
       color: COLORS.teal,
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '900',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
     },
     title: {
       color: COLORS.text,
-      fontSize: 22,
+      fontSize: 20,
       fontWeight: '900',
     },
     subtitle: {
       color: COLORS.muted,
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '700',
     },
     closeButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: COLORS.card,
@@ -719,18 +727,20 @@ function getStyles(isDark: boolean) {
       lineHeight: 26,
     },
     messages: {
-      minHeight: 230,
-      maxHeight: 390,
+      flex: 1,
+      minHeight: 0,
       backgroundColor: COLORS.background,
     },
     messagesContent: {
-      gap: 10,
-      padding: 14,
+      gap: 8,
+      padding: 12,
+      paddingBottom: 16,
     },
     messageBubble: {
-      maxWidth: '92%',
-      borderRadius: 20,
-      padding: 13,
+      maxWidth: '88%',
+      borderRadius: 18,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
       borderWidth: 1,
       borderColor: COLORS.border,
     },
@@ -745,24 +755,24 @@ function getStyles(isDark: boolean) {
     },
     messageText: {
       color: COLORS.text,
-      fontSize: 14,
-      lineHeight: 21,
-      fontWeight: '700',
+      fontSize: 13,
+      lineHeight: 19,
+      fontWeight: '600',
     },
     userMessageText: {
       color: COLORS.white,
     },
     stepsWrap: {
-      gap: 6,
-      marginTop: 10,
-      paddingTop: 10,
+      gap: 5,
+      marginTop: 8,
+      paddingTop: 8,
       borderTopWidth: 1,
       borderTopColor: COLORS.border,
     },
     stepText: {
       color: COLORS.muted,
-      fontSize: 12,
-      lineHeight: 18,
+      fontSize: 11,
+      lineHeight: 16,
       fontWeight: '700',
     },
     actionWrap: {
@@ -790,10 +800,10 @@ function getStyles(isDark: boolean) {
       fontWeight: '800',
     },
     errorCard: {
-      marginHorizontal: 14,
-      marginTop: 10,
+      marginHorizontal: 12,
+      marginTop: 8,
       borderRadius: 16,
-      padding: 12,
+      padding: 10,
       backgroundColor: COLORS.dangerBg,
       borderWidth: 1,
       borderColor: COLORS.danger,
@@ -801,71 +811,85 @@ function getStyles(isDark: boolean) {
     errorText: {
       color: COLORS.danger,
       fontWeight: '800',
-      lineHeight: 19,
+      fontSize: 12,
+      lineHeight: 17,
+    },
+    suggestionSection: {
+      alignSelf: 'stretch',
+      gap: 7,
+      marginTop: 2,
+    },
+    suggestionLabel: {
+      color: COLORS.muted,
+      fontSize: 11,
+      fontWeight: '800',
+      paddingHorizontal: 2,
     },
     suggestionWrap: {
-      gap: 8,
-      paddingHorizontal: 14,
-      paddingTop: 12,
-      paddingBottom: 4,
+      gap: 7,
+      paddingRight: 4,
+      paddingBottom: 2,
     },
     suggestionButton: {
-      maxWidth: 220,
-      borderRadius: 18,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      maxWidth: 174,
+      borderRadius: 999,
+      paddingHorizontal: 11,
+      paddingVertical: 8,
       backgroundColor: COLORS.tealSoft,
       borderWidth: 1,
       borderColor: COLORS.border,
     },
     suggestionText: {
       color: COLORS.text,
-      fontSize: 12,
-      fontWeight: '800',
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: '700',
     },
     inputRow: {
       flexDirection: 'row',
       alignItems: 'flex-end',
-      gap: 9,
-      padding: 14,
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingTop: 10,
+      paddingBottom: 10,
     },
     input: {
       flex: 1,
-      maxHeight: 96,
-      minHeight: 44,
+      maxHeight: 84,
+      minHeight: 42,
       color: COLORS.text,
-      fontSize: 14,
+      fontSize: 13,
       textAlignVertical: 'top',
       backgroundColor: COLORS.cardSoft,
-      borderRadius: 18,
-      paddingHorizontal: 13,
-      paddingVertical: 11,
+      borderRadius: 17,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
       borderWidth: 1,
       borderColor: COLORS.border,
     },
     sendButton: {
-      minWidth: 76,
-      borderRadius: 16,
-      paddingVertical: 13,
+      minWidth: 72,
+      borderRadius: 15,
+      paddingVertical: 12,
       alignItems: 'center',
       backgroundColor: COLORS.primary,
     },
     sendButtonText: {
       color: COLORS.white,
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '900',
     },
     ticketButton: {
-      marginHorizontal: 14,
-      marginBottom: 14,
+      marginHorizontal: 12,
+      marginBottom: 12,
       borderRadius: 16,
-      paddingVertical: 12,
+      paddingVertical: 11,
       alignItems: 'center',
       backgroundColor: COLORS.teal,
     },
     ticketButtonText: {
       color: COLORS.white,
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '900',
     },
     disabledButton: {
