@@ -54,7 +54,7 @@ type FloatingPosition = {
 };
 
 const POSITION_STORAGE_KEY = 'smart_rh_max_mobile_position';
-const MAX_ICON = require('../../../assets/max-icon.png');
+const MAX_ICON = require('../../../assets/max-touch-icon.png');
 const FLOATING_SIZE = 78;
 const EDGE_GAP = 16;
 
@@ -85,6 +85,23 @@ function clampPosition(
       Math.max(EDGE_GAP + 20, size.height - FLOATING_SIZE - 90)
     ),
   };
+}
+
+function snapPositionToSide(
+  position: FloatingPosition,
+  size = Dimensions.get('window')
+) {
+  const leftX = EDGE_GAP;
+  const rightX = Math.max(EDGE_GAP, size.width - FLOATING_SIZE - EDGE_GAP);
+  const centerX = position.x + FLOATING_SIZE / 2;
+
+  return clampPosition(
+    {
+      ...position,
+      x: centerX < size.width / 2 ? leftX : rightX,
+    },
+    size
+  );
 }
 
 function getColors(isDark: boolean) {
@@ -376,7 +393,10 @@ export default function MaxAssistantFloating() {
           setButtonPosition(next);
         },
         onPanResponderRelease: async () => {
-          const next = clampPosition(positionRef.current, screenSize);
+          const clampedPosition = clampPosition(positionRef.current, screenSize);
+          const next = movedRef.current
+            ? snapPositionToSide(clampedPosition, screenSize)
+            : clampedPosition;
 
           setDragging(false);
           setButtonPosition(next);
@@ -593,13 +613,13 @@ function getStyles(isDark: boolean) {
       position: 'absolute',
       width: FLOATING_SIZE,
       height: FLOATING_SIZE,
-      borderRadius: 28,
+      borderRadius: 999,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'transparent',
-      shadowColor: COLORS.primary,
+      shadowColor: '#FACC15',
       shadowOffset: { width: 0, height: 12 },
-      shadowOpacity: isDark ? 0.24 : 0.18,
+      shadowOpacity: isDark ? 0.22 : 0.18,
       shadowRadius: 18,
       elevation: 14,
       zIndex: 50,
@@ -611,7 +631,7 @@ function getStyles(isDark: boolean) {
     floatingLogoImage: {
       width: FLOATING_SIZE,
       height: FLOATING_SIZE,
-      borderRadius: 28,
+      borderRadius: 999,
     },
     modalRoot: {
       flex: 1,
@@ -647,20 +667,20 @@ function getStyles(isDark: boolean) {
     avatar: {
       width: 58,
       height: 58,
-      borderRadius: 20,
+      borderRadius: 999,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'transparent',
-      shadowColor: COLORS.primary,
+      shadowColor: '#FACC15',
       shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: isDark ? 0.2 : 0.12,
+      shadowOpacity: isDark ? 0.18 : 0.12,
       shadowRadius: 14,
       elevation: 8,
     },
     avatarImage: {
       width: 58,
       height: 58,
-      borderRadius: 20,
+      borderRadius: 999,
     },
     headerCopy: {
       flex: 1,
