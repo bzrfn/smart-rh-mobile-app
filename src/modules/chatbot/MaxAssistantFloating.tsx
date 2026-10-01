@@ -20,6 +20,9 @@ import { useNavigation } from '@react-navigation/native';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
+const MAX_MOBILE_HISTORY_KEY = 'smart-rh:max:mobile-history:v1';
+const MAX_MOBILE_HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 type ChatbotAction = {
   label: string;
   target: string;
@@ -172,6 +175,38 @@ export default function MaxAssistantFloating() {
         'Hola, soy Max. Cuéntame qué necesitas resolver en SMART RH y lo revisamos paso a paso.',
     },
   ]);
+  const [maxHistoryReady, setMaxHistoryReady] = useState(false);
+
+  useEffect(() => {
+    if (maxHistoryReady) return;
+    setMaxHistoryReady(true);
+
+    AsyncStorage.getItem(MAX_MOBILE_HISTORY_KEY)
+      .then((raw) => {
+        if (!raw) return;
+
+        const payload = JSON.parse(raw) as { savedAt?: number; messages?: unknown[] };
+        const isFresh = typeof payload.savedAt === 'number' && Date.now() - payload.savedAt <= MAX_MOBILE_HISTORY_TTL_MS;
+
+        if (isFresh && Array.isArray(payload.messages) && payload.messages.length > 0) {
+          setMessages(payload.messages as any);
+        } else {
+          void AsyncStorage.removeItem(MAX_MOBILE_HISTORY_KEY);
+        }
+      })
+      .catch(() => {
+        void AsyncStorage.removeItem(MAX_MOBILE_HISTORY_KEY);
+      });
+  }, [maxHistoryReady]);
+
+  useEffect(() => {
+    if (!maxHistoryReady) return;
+
+    void AsyncStorage.setItem(
+      MAX_MOBILE_HISTORY_KEY,
+      JSON.stringify({ savedAt: Date.now(), messages })
+    );
+  }, [maxHistoryReady, messages]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [message, setMessage] = useState('');
