@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -12,6 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -44,8 +47,42 @@ type Message = {
   response?: ChatbotResponse;
 };
 
+type FloatingPosition = {
+  x: number;
+  y: number;
+};
+
+const POSITION_STORAGE_KEY = 'smart_rh_max_mobile_position';
+const FLOATING_SIZE = 74;
+const EDGE_GAP = 16;
+
 function buildId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getDefaultPosition() {
+  const size = Dimensions.get('window');
+
+  return {
+    x: size.width - FLOATING_SIZE - 18,
+    y: size.height - FLOATING_SIZE - 110,
+  };
+}
+
+function clampPosition(
+  position: FloatingPosition,
+  size = Dimensions.get('window')
+) {
+  return {
+    x: Math.min(
+      Math.max(position.x, EDGE_GAP),
+      Math.max(EDGE_GAP, size.width - FLOATING_SIZE - EDGE_GAP)
+    ),
+    y: Math.min(
+      Math.max(position.y, EDGE_GAP + 20),
+      Math.max(EDGE_GAP + 20, size.height - FLOATING_SIZE - 90)
+    ),
+  };
 }
 
 function getColors(isDark: boolean) {
@@ -98,8 +135,16 @@ export default function MaxAssistantFloating() {
   const colors = getColors(isDark);
   const styles = getStyles(isDark);
   const scrollRef = useRef<ScrollView | null>(null);
+  const panStartRef = useRef<FloatingPosition>(getDefaultPosition());
+  const positionRef = useRef<FloatingPosition>(getDefaultPosition());
+  const movedRef = useRef(false);
 
   const [open, setOpen] = useState(false);
+  const [screenSize, setScreenSize] = useState(Dimensions.get('window'));
+  const [buttonPosition, setButtonPosition] = useState<FloatingPosition>(
+    () => clampPosition(getDefaultPosition())
+  );
+  const [dragging, setDragging] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: buildId(),
@@ -144,6 +189,47 @@ export default function MaxAssistantFloating() {
 
   useEffect(() => {
     loadSuggestions();
+  }, []);
+
+  useEffect(() => {
+    positionRef.current = buttonPosition;
+  }, [buttonPosition]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadPosition() {
+      try {
+        const saved = await AsyncStorage.getItem(POSITION_STORAGE_KEY);
+        const parsed = saved ? JSON.parse(saved) : null;
+
+        if (
+          active &&
+          parsed &&
+          Number.isFinite(parsed.x) &&
+          Number.isFinite(parsed.y)
+        ) {
+          setButtonPosition(clampPosition(parsed, screenSize));
+        }
+      } catch {
+        setButtonPosition(clampPosition(getDefaultPosition(), screenSize));
+      }
+    }
+
+    loadPosition();
+
+    return () => {
+      active = false;
+    };
+  }, [screenSize]);
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenSize(window);
+      setButtonPosition((current) => clampPosition(current, window));
+    });
+
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
@@ -260,17 +346,81 @@ export default function MaxAssistantFloating() {
     navigation.navigate(route);
   }
 
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          Math.abs(gesture.dx) > 3 || Math.abs(gesture.dy) > 3,
+        onPanResponderGrant: () => {
+          panStartRef.current = buttonPosition;
+          movedRef.current = false;
+          setDragging(true);
+        },
+        onPanResponderMove: (_, gesture) => {
+          const next = clampPosition(
+            {
+              x: panStartRef.current.x + gesture.dx,
+              y: panStartRef.current.y + gesture.dy,
+            },
+            screenSize
+          );
+
+          if (Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5) {
+            movedRef.current = true;
+          }
+
+          positionRef.current = next;
+          setButtonPosition(next);
+        },
+        onPanResponderRelease: async () => {
+          const next = clampPosition(positionRef.current, screenSize);
+
+          setDragging(false);
+          setButtonPosition(next);
+
+          try {
+            await AsyncStorage.setItem(
+              POSITION_STORAGE_KEY,
+              JSON.stringify(next)
+            );
+          } catch {
+            // La posicion es una preferencia visual; si falla, no bloquea el chat.
+          }
+
+          if (!movedRef.current) {
+            setOpen(true);
+          }
+        },
+        onPanResponderTerminate: () => {
+          setDragging(false);
+        },
+      }),
+    [buttonPosition, screenSize]
+  );
+
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Abrir Max"
-        style={styles.floatingButton}
-        onPress={() => setOpen(true)}
-      >
-        <Text style={styles.floatingIcon}>MX</Text>
-        <View style={styles.floatingDot} />
-      </Pressable>
+      {!open ? (
+        <View
+          accessibilityRole="button"
+          accessibilityLabel="Abrir Max"
+          style={[
+            styles.floatingButton,
+            {
+              left: buttonPosition.x,
+              top: buttonPosition.y,
+            },
+            dragging && styles.floatingButtonDragging,
+          ]}
+          {...panResponder.panHandlers}
+        >
+          <Text style={styles.floatingBrand}>SRH</Text>
+          <Text style={styles.floatingIcon}>Max</Text>
+          <Text style={styles.floatingHint}>Mover</Text>
+          <View style={styles.floatingDot} />
+        </View>
+      ) : null}
 
       <Modal
         visible={open}
@@ -289,7 +439,8 @@ export default function MaxAssistantFloating() {
             >
               <View style={styles.header}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>MX</Text>
+                  <Text style={styles.avatarBrand}>SRH</Text>
+                  <Text style={styles.avatarText}>Max</Text>
                 </View>
                 <View style={styles.headerCopy}>
                   <Text style={styles.kicker}>Asistente interno</Text>
@@ -442,14 +593,12 @@ function getStyles(isDark: boolean) {
   return StyleSheet.create({
     floatingButton: {
       position: 'absolute',
-      right: 18,
-      bottom: 26,
-      width: 62,
-      height: 62,
-      borderRadius: 31,
+      width: FLOATING_SIZE,
+      height: FLOATING_SIZE,
+      borderRadius: 26,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: COLORS.primaryStrong,
+      backgroundColor: COLORS.primary,
       borderWidth: 1,
       borderColor: isDark ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.88)',
       shadowColor: '#000000',
@@ -459,21 +608,41 @@ function getStyles(isDark: boolean) {
       elevation: 14,
       zIndex: 50,
     },
+    floatingButtonDragging: {
+      transform: [{ scale: 0.98 }],
+      opacity: 0.92,
+    },
+    floatingBrand: {
+      color: COLORS.white,
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 1.4,
+      marginBottom: 2,
+    },
     floatingIcon: {
       color: COLORS.white,
-      fontSize: 17,
+      fontSize: 18,
       fontWeight: '900',
-      letterSpacing: 0.4,
+      letterSpacing: 0.2,
+      lineHeight: 20,
+    },
+    floatingHint: {
+      marginTop: 3,
+      color: 'rgba(255,255,255,0.86)',
+      fontSize: 8,
+      fontWeight: '900',
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
     },
     floatingDot: {
       position: 'absolute',
       right: 8,
       top: 8,
-      width: 12,
-      height: 12,
-      borderRadius: 6,
+      width: 14,
+      height: 14,
+      borderRadius: 7,
       backgroundColor: COLORS.teal,
-      borderWidth: 2,
+      borderWidth: 3,
       borderColor: COLORS.white,
     },
     modalRoot: {
@@ -486,7 +655,7 @@ function getStyles(isDark: boolean) {
       padding: 14,
     },
     panel: {
-      maxHeight: '82%',
+      maxHeight: '80%',
       borderRadius: 28,
       overflow: 'hidden',
       backgroundColor: COLORS.card,
@@ -502,23 +671,33 @@ function getStyles(isDark: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
-      padding: 16,
+      padding: 17,
       borderBottomWidth: 1,
       borderBottomColor: COLORS.border,
       backgroundColor: COLORS.cardSoft,
     },
     avatar: {
-      width: 44,
-      height: 44,
-      borderRadius: 16,
+      width: 58,
+      height: 58,
+      borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: COLORS.primary,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.78)',
+    },
+    avatarBrand: {
+      color: COLORS.white,
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 1.3,
+      marginBottom: 3,
     },
     avatarText: {
       color: COLORS.white,
+      fontSize: 16,
       fontWeight: '900',
-      letterSpacing: 0.5,
+      letterSpacing: 0.2,
     },
     headerCopy: {
       flex: 1,
@@ -557,8 +736,8 @@ function getStyles(isDark: boolean) {
       lineHeight: 26,
     },
     messages: {
-      minHeight: 260,
-      maxHeight: 420,
+      minHeight: 230,
+      maxHeight: 390,
       backgroundColor: COLORS.background,
     },
     messagesContent: {
@@ -648,10 +827,10 @@ function getStyles(isDark: boolean) {
       paddingBottom: 4,
     },
     suggestionButton: {
-      maxWidth: 230,
-      borderRadius: 999,
+      maxWidth: 220,
+      borderRadius: 18,
       paddingHorizontal: 12,
-      paddingVertical: 9,
+      paddingVertical: 10,
       backgroundColor: COLORS.tealSoft,
       borderWidth: 1,
       borderColor: COLORS.border,
