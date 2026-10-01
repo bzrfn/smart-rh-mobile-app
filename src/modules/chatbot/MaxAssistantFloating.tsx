@@ -193,15 +193,26 @@ export default function MaxAssistantFloating() {
     [messages]
   );
 
+  const canCreateContextTicket = useMemo(() => {
+    const latestAssistant = [...messages]
+      .reverse()
+      .find((item) => item.author === 'assistant' && item.response);
+
+    return Boolean(
+      lastQuestion &&
+        latestAssistant?.response?.requiere_escalamiento
+    );
+  }, [lastQuestion, messages]);
+
   async function loadSuggestions() {
     try {
       const { data } = await api.get('/chatbot/sugerencias');
       setSuggestions(Array.isArray(data?.sugerencias) ? data.sugerencias : []);
     } catch {
       setSuggestions([
-        'No puedo registrar asistencia',
-        'Ver calendario laboral',
-        'Crear ticket de soporte',
+        'Tengo un problema',
+        'Revisar mi calendario',
+        'Ayuda con asistencia',
       ]);
     }
   }
@@ -570,10 +581,7 @@ export default function MaxAssistantFloating() {
                 ) : null}
 
                 <View style={styles.inputRow}>
-                  <View style={styles.inputTool}>
-                    <Text style={styles.inputToolText}>+</Text>
-                  </View>
-                  <TextInput
+<TextInput
                     style={styles.input}
                     value={message}
                     onChangeText={setMessage}
@@ -595,7 +603,7 @@ export default function MaxAssistantFloating() {
                   </Pressable>
                 </View>
 
-                {lastQuestion ? (
+                {canCreateContextTicket ? (
                   <Pressable
                     style={[
                       styles.ticketButton,
@@ -870,22 +878,10 @@ function getStyles(isDark: boolean) {
       borderWidth: 1,
       borderColor: COLORS.border,
       borderRadius: 24,
-      padding: 6,
+      paddingVertical: 6,
+      paddingLeft: 14,
+      paddingRight: 6,
       backgroundColor: COLORS.cardSoft,
-    },
-    inputTool: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: COLORS.primarySoft,
-    },
-    inputToolText: {
-      color: COLORS.primary,
-      fontSize: 22,
-      fontWeight: '500',
-      lineHeight: 24,
     },
     input: {
       flex: 1,
