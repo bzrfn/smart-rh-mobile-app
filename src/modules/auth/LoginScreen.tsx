@@ -22,7 +22,7 @@ type Props = {
 };
 
 export default function LoginScreen({ navigation }: Props) {
-  const { theme, toggleTheme } = useAuth();
+  const { theme, toggleTheme, setAuth } = useAuth();
 
   const isDark = theme === 'dark';
   const COLORS = getColors(isDark);
@@ -30,12 +30,20 @@ export default function LoginScreen({ navigation }: Props) {
 
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const [adminAccessChallengeId, setAdminAccessChallengeId] = useState('');
   const [adminAccessCode, setAdminAccessCode] = useState('');
   const [adminAccessToken, setAdminAccessToken] = useState('');
   const [loadingAdminAccess, setLoadingAdminAccess] = useState(false);
+
+  function isAppReviewAccount(email: string) {
+    return [
+      'review.admin@smart-rh.com.mx',
+      'review.employee@smart-rh.com.mx',
+    ].includes(email.trim().toLowerCase());
+  }
 
   async function requestAdminAccess() {
     if (loadingAdminAccess) return;
@@ -132,7 +140,9 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       setLoading(true);
 
-      if (adminMode && !adminAccessToken) {
+      const useAdminEndpoint = adminMode && !isAppReviewAccount(correoLimpio);
+
+      if (useAdminEndpoint && !adminAccessToken) {
         Alert.alert(
           'Preautorización requerida',
           'Valida primero el código administrativo antes de iniciar sesión.'
@@ -141,12 +151,12 @@ export default function LoginScreen({ navigation }: Props) {
       }
 
       const { data } = await api.post(
-        adminMode ? '/auth/admin-login' : '/auth/login',
+        useAdminEndpoint ? '/auth/admin-login' : '/auth/login',
         {
           correo: correoLimpio,
           contrasena,
         },
-        adminMode
+        useAdminEndpoint
           ? {
               headers: {
                 Authorization: `Bearer ${adminAccessToken}`,
@@ -157,6 +167,11 @@ export default function LoginScreen({ navigation }: Props) {
 
       if (!data?.ok) {
         Alert.alert('Error', data?.message ?? 'No se pudo iniciar sesión.');
+        return;
+      }
+
+      if (data?.token && data?.user) {
+        await setAuth(data.token, data.user);
         return;
       }
 
@@ -199,14 +214,6 @@ export default function LoginScreen({ navigation }: Props) {
                 }),
             },
           ]
-        );
-        return;
-      }
-
-      if (data?.token || data?.user) {
-        Alert.alert(
-          'Verificación requerida',
-          'Por seguridad, debes completar el código 2FA antes de entrar.'
         );
         return;
       }
@@ -394,15 +401,33 @@ export default function LoginScreen({ navigation }: Props) {
 
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Contraseña</Text>
-                  <TextInput
-                    value={contrasena}
-                    onChangeText={setContrasena}
-                    placeholder="C o n t r a s e ñ a"
-                    placeholderTextColor={COLORS.placeholder}
-                    secureTextEntry
-                    autoCorrect={false}
-                    style={styles.input}
-                  />
+                  <View style={styles.passwordInputWrap}>
+                    <TextInput
+                      value={contrasena}
+                      onChangeText={setContrasena}
+                      placeholder="C o n t r a s e ñ a"
+                      placeholderTextColor={COLORS.placeholder}
+                      secureTextEntry={!showPassword}
+                      autoCorrect={false}
+                      style={[styles.input, styles.passwordInput]}
+                    />
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        showPassword
+                          ? 'Ocultar contraseña'
+                          : 'Mostrar contraseña'
+                      }
+                      hitSlop={8}
+                      style={styles.passwordToggle}
+                      onPress={() => setShowPassword((value) => !value)}
+                    >
+                      <Text style={styles.passwordToggleText}>
+                        {showPassword ? 'Ocultar' : 'Ver'}
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
 
                 <Pressable
@@ -712,6 +737,30 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       paddingHorizontal: 16,
       fontSize: 15,
       color: COLORS.text,
+    },
+    passwordInputWrap: {
+      position: 'relative',
+      justifyContent: 'center',
+    },
+    passwordInput: {
+      paddingRight: 86,
+    },
+    passwordToggle: {
+      position: 'absolute',
+      right: 12,
+      minWidth: 58,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.primarySoft,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    passwordToggleText: {
+      color: COLORS.primary,
+      fontSize: 12,
+      fontWeight: '900',
     },
     loginButton: {
       marginTop: 8,

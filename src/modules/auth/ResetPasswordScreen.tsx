@@ -38,6 +38,8 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
   const [codigo, setCodigo] = useState('');
   const [nuevaContrasena, setNuevaContrasena] = useState('');
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const onReset = async () => {
@@ -148,28 +150,64 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
 
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Nueva contraseña</Text>
-                  <TextInput
-                    value={nuevaContrasena}
-                    onChangeText={setNuevaContrasena}
-                    placeholder="••••••••"
-                    placeholderTextColor={COLORS.placeholder}
-                    secureTextEntry
-                    autoCorrect={false}
-                    style={styles.input}
-                  />
+                  <View style={styles.passwordInputWrap}>
+                    <TextInput
+                      value={nuevaContrasena}
+                      onChangeText={setNuevaContrasena}
+                      placeholder="••••••••"
+                      placeholderTextColor={COLORS.placeholder}
+                      secureTextEntry={!showNewPassword}
+                      autoCorrect={false}
+                      style={[styles.input, styles.passwordInput]}
+                    />
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        showNewPassword
+                          ? 'Ocultar contraseña'
+                          : 'Mostrar contraseña'
+                      }
+                      hitSlop={8}
+                      style={styles.passwordToggle}
+                      onPress={() => setShowNewPassword((value) => !value)}
+                    >
+                      <Text style={styles.passwordToggleText}>
+                        {showNewPassword ? 'Ocultar' : 'Ver'}
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
 
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Confirmar contraseña</Text>
-                  <TextInput
-                    value={confirmarContrasena}
-                    onChangeText={setConfirmarContrasena}
-                    placeholder="••••••••"
-                    placeholderTextColor={COLORS.placeholder}
-                    secureTextEntry
-                    autoCorrect={false}
-                    style={styles.input}
-                  />
+                  <View style={styles.passwordInputWrap}>
+                    <TextInput
+                      value={confirmarContrasena}
+                      onChangeText={setConfirmarContrasena}
+                      placeholder="••••••••"
+                      placeholderTextColor={COLORS.placeholder}
+                      secureTextEntry={!showConfirmPassword}
+                      autoCorrect={false}
+                      style={[styles.input, styles.passwordInput]}
+                    />
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        showConfirmPassword
+                          ? 'Ocultar contraseña'
+                          : 'Mostrar contraseña'
+                      }
+                      hitSlop={8}
+                      style={styles.passwordToggle}
+                      onPress={() => setShowConfirmPassword((value) => !value)}
+                    >
+                      <Text style={styles.passwordToggleText}>
+                        {showConfirmPassword ? 'Ocultar' : 'Ver'}
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
 
                 <Pressable
@@ -365,6 +403,30 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       paddingHorizontal: 16,
       fontSize: 15,
       color: COLORS.text,
+    },
+    passwordInputWrap: {
+      position: 'relative',
+      justifyContent: 'center',
+    },
+    passwordInput: {
+      paddingRight: 86,
+    },
+    passwordToggle: {
+      position: 'absolute',
+      right: 12,
+      minWidth: 58,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.primarySoft,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    passwordToggleText: {
+      color: COLORS.primary,
+      fontSize: 12,
+      fontWeight: '900',
     },
     primaryButton: {
       marginTop: 8,

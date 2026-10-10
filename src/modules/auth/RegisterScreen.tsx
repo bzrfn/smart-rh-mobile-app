@@ -32,6 +32,7 @@ export default function RegisterScreen({ navigation }: Props) {
   const [apellido, setApellido] = useState('');
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [telefono, setTelefono] = useState('');
   const [direccion, setDireccion] = useState('');
   const [fechaIngreso, setFechaIngreso] = useState('');
@@ -187,7 +188,18 @@ export default function RegisterScreen({ navigation }: Props) {
               <Input styles={styles} colors={COLORS} label="Nombre" value={nombre} onChangeText={setNombre} placeholder="Juan" />
               <Input styles={styles} colors={COLORS} label="Apellido" value={apellido} onChangeText={setApellido} placeholder="Pérez" />
               <Input styles={styles} colors={COLORS} label="Correo" value={correo} onChangeText={setCorreo} placeholder="usuario@empresa.com" keyboardType="email-address" />
-              <Input styles={styles} colors={COLORS} label="Contraseña" value={contrasena} onChangeText={setContrasena} placeholder="••••••••" secureTextEntry />
+              <Input
+                styles={styles}
+                colors={COLORS}
+                label="Contraseña"
+                value={contrasena}
+                onChangeText={setContrasena}
+                placeholder="••••••••"
+                secureTextEntry={!showPassword}
+                secureToggle
+                secureVisible={showPassword}
+                onToggleSecure={() => setShowPassword((value) => !value)}
+              />
               <Input styles={styles} colors={COLORS} label="Teléfono" value={telefono} onChangeText={setTelefono} placeholder="55 1234 5678" />
               <Input styles={styles} colors={COLORS} label="Dirección" value={direccion} onChangeText={setDireccion} placeholder="Dirección del empleado" />
               <Input styles={styles} colors={COLORS} label="Fecha de ingreso" value={fechaIngreso} onChangeText={setFechaIngreso} placeholder="YYYY-MM-DD" />
@@ -219,17 +231,51 @@ export default function RegisterScreen({ navigation }: Props) {
   );
 }
 
-function Input({ styles, colors, label, ...props }: any) {
+function Input({
+  styles,
+  colors,
+  label,
+  secureToggle,
+  secureVisible,
+  onToggleSecure,
+  ...props
+}: any) {
   return (
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        {...props}
-        placeholderTextColor={colors.placeholder}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={styles.input}
-      />
+      {secureToggle ? (
+        <View style={styles.passwordInputWrap}>
+          <TextInput
+            {...props}
+            placeholderTextColor={colors.placeholder}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={[styles.input, styles.passwordInput]}
+          />
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              secureVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'
+            }
+            hitSlop={8}
+            style={styles.passwordToggle}
+            onPress={onToggleSecure}
+          >
+            <Text style={styles.passwordToggleText}>
+              {secureVisible ? 'Ocultar' : 'Ver'}
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <TextInput
+          {...props}
+          placeholderTextColor={colors.placeholder}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.input}
+        />
+      )}
     </View>
   );
 }
@@ -382,6 +428,30 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       paddingHorizontal: 16,
       fontSize: 15,
       color: COLORS.text,
+    },
+    passwordInputWrap: {
+      position: 'relative',
+      justifyContent: 'center',
+    },
+    passwordInput: {
+      paddingRight: 86,
+    },
+    passwordToggle: {
+      position: 'absolute',
+      right: 12,
+      minWidth: 58,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.primarySoft,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    passwordToggleText: {
+      color: COLORS.primary,
+      fontSize: 12,
+      fontWeight: '900',
     },
     primaryButton: {
       marginTop: 8,
