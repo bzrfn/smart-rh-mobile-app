@@ -16,6 +16,10 @@ import {
 } from 'react-native';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import AnimatedEntrance from '../../components/AnimatedEntrance';
+import ConstellationAccent from '../../components/ConstellationAccent';
+import PasswordEyeIcon from '../../components/PasswordEyeIcon';
+import { getSmartRhColors, getSmartRhShadow } from '../../design/smartRhTheme';
 
 type Props = {
   navigation: any;
@@ -248,7 +252,11 @@ export default function LoginScreen({ navigation }: Props) {
               <View style={styles.shapeBottomRightLarge} />
               <View style={styles.shapeBottomRightSmall} />
 
+              <AnimatedEntrance delay={40}>
               <View style={styles.heroCard}>
+                <View style={styles.heroRail} />
+                <View style={styles.heroGlow} />
+                <ConstellationAccent isDark={isDark} style={styles.constellation} />
                 <View style={styles.heroTopRow}>
                   <View style={styles.heroPill}>
                     <Text style={styles.heroPillText}>SMART RH</Text>
@@ -261,9 +269,7 @@ export default function LoginScreen({ navigation }: Props) {
                       pressed ? styles.themeButtonPressed : null,
                     ]}
                   >
-                    <Text style={styles.themeButtonIcon}>
-                      {isDark ? '☀️' : '🌙'}
-                    </Text>
+                    <View style={styles.themeButtonDot} />
                     <Text style={styles.themeButtonText}>
                       {isDark ? 'Claro' : 'Oscuro'}
                     </Text>
@@ -271,29 +277,23 @@ export default function LoginScreen({ navigation }: Props) {
                 </View>
 
                 <View style={styles.accessBadge}>
-                  <Text style={styles.accessBadgeText}>Acceso seguro</Text>
+                  <Text style={styles.accessBadgeText}>Portal móvil</Text>
                 </View>
 
                 <Text style={styles.eyebrow}>Bienvenido</Text>
                 <Text style={styles.heroTitle}>Inicia sesión</Text>
                 <Text style={styles.heroSubtitle}>
-                  Ingresa tus credenciales. SMART RH enviará un código de un solo uso
-                  a tu correo para completar el acceso.
+                  Ingresa con tu cuenta para continuar a tu panel laboral.
                 </Text>
-
-                <View style={styles.heroInfoCard}>
-                  <Text style={styles.heroInfoTitle}>Autenticación por correo</Text>
-                  <Text style={styles.heroInfoText}>
-                    Tu cuenta está protegida con verificación 2FA. El acceso se confirma
-                    mediante un código temporal enviado a tu email.
-                  </Text>
-                </View>
               </View>
+              </AnimatedEntrance>
 
+              <AnimatedEntrance delay={140}>
               <View style={styles.card}>
+                <View style={styles.formHeaderLine} />
                 <Text style={styles.cardTitle}>Acceso a la cuenta</Text>
                 <Text style={styles.cardDescription}>
-                  Ingresa tus credenciales para recibir el código de verificación.
+                  Usa tu correo y contraseña para entrar a SMART RH.
                 </Text>
 
                 <View style={styles.adminModeCard}>
@@ -423,9 +423,10 @@ export default function LoginScreen({ navigation }: Props) {
                       style={styles.passwordToggle}
                       onPress={() => setShowPassword((value) => !value)}
                     >
-                      <Text style={styles.passwordToggleText}>
-                        {showPassword ? 'Ocultar' : 'Ver'}
-                      </Text>
+                      <PasswordEyeIcon
+                        color={COLORS.primaryText}
+                        hidden={!showPassword}
+                      />
                     </Pressable>
                   </View>
                 </View>
@@ -463,6 +464,7 @@ export default function LoginScreen({ navigation }: Props) {
                   </Pressable>
                 </View>
               </View>
+              </AnimatedEntrance>
             </View>
           </ScrollView>
         </TouchableWithoutFeedback>
@@ -472,24 +474,41 @@ export default function LoginScreen({ navigation }: Props) {
 }
 
 function getColors(isDark: boolean) {
+  const colors = getSmartRhColors(isDark);
+
   return {
-    background: isDark ? '#07111F' : '#F4F7FB',
-    card: isDark ? '#0F1B2D' : '#FFFFFF',
-    cardSoft: isDark ? '#111F33' : '#F9FBFD',
-    primary: isDark ? '#38BDF8' : '#0A57A4',
-    primaryDark: isDark ? '#0EA5E9' : '#084785',
-    primarySoft: isDark ? 'rgba(56,189,248,0.14)' : 'rgba(10,87,164,0.10)',
-    teal: isDark ? '#2DD4BF' : '#22B8B0',
-    tealSoft: isDark ? '#14B8A6' : '#67D5CC',
-    tealBg: isDark ? 'rgba(45,212,191,0.14)' : 'rgba(34,184,176,0.12)',
-    text: isDark ? '#F8FAFC' : '#0F172A',
-    textMuted: isDark ? '#9FB0C4' : '#5B6B81',
-    border: isDark ? '#26364D' : '#D9E1EC',
-    placeholder: isDark ? '#71839B' : '#8B9AAF',
+    background: colors.background,
+    card: colors.card,
+    cardSoft: colors.cardSoft,
+    primary: colors.primary,
+    primaryText: colors.primary,
+    heroCard: colors.card,
+    heroCardSoft: colors.cardSoft,
+    heroText: colors.text,
+    heroMuted: colors.textMuted,
+    heroAccent: colors.primary,
+    onAccent: '#FFFFFF',
+    primaryDark: colors.primaryDark,
+    primarySoft: colors.primarySoft,
+    teal: colors.success,
+    tealSoft: colors.success,
+    tealBg: colors.successSoft,
+    link: colors.link,
+    linkSoft: colors.linkSoft,
+    maxAccent: colors.maxAccent,
+    maxAccentSoft: colors.maxAccentSoft,
+    spark: colors.spark,
+    text: colors.text,
+    textMuted: colors.textMuted,
+    border: colors.border,
+    placeholder: colors.placeholder,
+    onPrimary: '#FFFFFF',
   };
 }
 
 function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
+  const shadow = getSmartRhShadow(isDark);
+
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: COLORS.background },
     keyboard: { flex: 1 },
@@ -498,7 +517,7 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     container: {
       flexGrow: 1,
       paddingHorizontal: 22,
-      paddingTop: 28,
+      paddingTop: 22,
       paddingBottom: 36,
       backgroundColor: COLORS.background,
       overflow: 'hidden',
@@ -506,17 +525,36 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     },
     heroCard: {
       zIndex: 2,
-      backgroundColor: COLORS.card,
+      position: 'relative',
+      backgroundColor: COLORS.heroCard,
       borderRadius: 30,
-      padding: 24,
-      marginBottom: 18,
-      shadowColor: '#000',
-      shadowOpacity: isDark ? 0.28 : 0.09,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 6,
+      padding: 20,
+      marginBottom: 12,
+      overflow: 'hidden',
+      ...shadow,
       borderWidth: 1,
       borderColor: COLORS.border,
+    },
+    heroRail: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 7,
+      backgroundColor: COLORS.heroAccent,
+    },
+    heroGlow: {
+      position: 'absolute',
+      right: -44,
+      top: -34,
+      width: 150,
+      height: 150,
+      borderRadius: 75,
+      backgroundColor: COLORS.primarySoft,
+    },
+    constellation: {
+      right: -16,
+      top: 46,
     },
     heroTopRow: {
       flexDirection: 'row',
@@ -529,18 +567,20 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.border,
     },
     heroPillText: {
-      color: COLORS.primary,
+      color: COLORS.heroAccent,
       fontSize: 12,
-      fontWeight: '900',
+      fontWeight: '800',
       letterSpacing: 0.8,
     },
     themeButton: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: COLORS.cardSoft,
+      backgroundColor: COLORS.heroCardSoft,
       borderWidth: 1,
       borderColor: COLORS.border,
       borderRadius: 999,
@@ -551,15 +591,20 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       opacity: 0.85,
       transform: [{ scale: 0.97 }],
     },
-    themeButtonIcon: { fontSize: 14 },
+    themeButtonDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: COLORS.teal,
+    },
     themeButtonText: {
-      color: COLORS.primary,
-      fontWeight: '900',
+      color: COLORS.heroText,
+      fontWeight: '700',
       fontSize: 12,
     },
     accessBadge: {
       alignSelf: 'flex-start',
-      marginTop: 18,
+      marginTop: 14,
       backgroundColor: COLORS.tealBg,
       paddingHorizontal: 12,
       paddingVertical: 8,
@@ -568,75 +613,65 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     accessBadgeText: {
       color: COLORS.teal,
       fontSize: 12,
-      fontWeight: '900',
+      fontWeight: '700',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
     },
     eyebrow: {
-      marginTop: 18,
+      marginTop: 13,
       fontSize: 12,
-      fontWeight: '800',
+      fontWeight: '700',
       textTransform: 'uppercase',
       letterSpacing: 1.2,
-      color: COLORS.textMuted,
+      color: COLORS.heroMuted,
       marginBottom: 8,
     },
     heroTitle: {
-      fontSize: 30,
-      fontWeight: '900',
-      color: COLORS.primary,
+      fontSize: 29,
+      fontWeight: '700',
+      color: COLORS.heroText,
     },
     heroSubtitle: {
-      marginTop: 12,
+      marginTop: 8,
+      marginBottom: 2,
       fontSize: 15,
-      color: COLORS.textMuted,
-      lineHeight: 24,
-    },
-    heroInfoCard: {
-      marginTop: 18,
-      backgroundColor: COLORS.cardSoft,
-      borderRadius: 20,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-    },
-    heroInfoTitle: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: COLORS.text,
-    },
-    heroInfoText: {
-      marginTop: 6,
-      fontSize: 14,
-      color: COLORS.textMuted,
+      color: COLORS.heroMuted,
       lineHeight: 21,
     },
     card: {
       zIndex: 2,
+      position: 'relative',
+      overflow: 'hidden',
       backgroundColor: COLORS.card,
-      borderRadius: 28,
+      borderRadius: 30,
       paddingHorizontal: 22,
-      paddingVertical: 24,
-      shadowColor: '#000',
-      shadowOpacity: isDark ? 0.3 : 0.1,
-      shadowRadius: 16,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 6,
+      paddingTop: 28,
+      paddingBottom: 24,
+      ...shadow,
       borderWidth: 1,
       borderColor: COLORS.border,
     },
+    formHeaderLine: {
+      position: 'absolute',
+      top: 0,
+      left: 22,
+      right: 22,
+      height: 3,
+      borderRadius: 999,
+      backgroundColor: COLORS.primary,
+    },
     cardTitle: {
       fontSize: 24,
-      fontWeight: '900',
+      fontWeight: '700',
       color: COLORS.text,
-      textAlign: 'center',
+      textAlign: 'left',
     },
     cardDescription: {
       marginTop: 8,
       marginBottom: 20,
       fontSize: 14,
       color: COLORS.textMuted,
-      textAlign: 'center',
+      textAlign: 'left',
       lineHeight: 21,
     },
     adminModeCard: {
@@ -655,7 +690,7 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     adminModeTitle: {
       color: COLORS.text,
       fontSize: 15,
-      fontWeight: '900',
+      fontWeight: '700',
     },
     adminModeText: {
       marginTop: 4,
@@ -680,7 +715,7 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     adminModeToggleText: {
       color: COLORS.textMuted,
       fontSize: 12,
-      fontWeight: '900',
+      fontWeight: '700',
     },
     adminModeToggleTextActive: {
       color: COLORS.teal,
@@ -702,8 +737,8 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       opacity: 0.65,
     },
     adminAccessButtonText: {
-      color: COLORS.primary,
-      fontWeight: '900',
+      color: COLORS.primaryText,
+      fontWeight: '700',
       fontSize: 13,
     },
     adminVerifyButton: {
@@ -718,14 +753,14 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     },
     adminVerifyButtonText: {
       color: COLORS.teal,
-      fontWeight: '900',
+      fontWeight: '700',
       fontSize: 13,
     },
     fieldGroup: { marginBottom: 16 },
     label: {
       marginBottom: 8,
       fontSize: 13,
-      fontWeight: '700',
+      fontWeight: '600',
       color: COLORS.textMuted,
     },
     input: {
@@ -743,12 +778,12 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       justifyContent: 'center',
     },
     passwordInput: {
-      paddingRight: 86,
+      paddingRight: 66,
     },
     passwordToggle: {
       position: 'absolute',
       right: 12,
-      minWidth: 58,
+      width: 42,
       height: 36,
       borderRadius: 18,
       alignItems: 'center',
@@ -756,11 +791,6 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       backgroundColor: COLORS.primarySoft,
       borderWidth: 1,
       borderColor: COLORS.border,
-    },
-    passwordToggleText: {
-      color: COLORS.primary,
-      fontSize: 12,
-      fontWeight: '900',
     },
     loginButton: {
       marginTop: 8,
@@ -783,9 +813,9 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     },
     loginButtonDisabled: { opacity: 0.85 },
     loginButtonText: {
-      color: '#FFFFFF',
+      color: COLORS.onPrimary,
       fontSize: 16,
-      fontWeight: '900',
+      fontWeight: '700',
     },
     loginButtonIcon: {
       position: 'absolute',
@@ -798,9 +828,9 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       justifyContent: 'center',
     },
     loginButtonIconText: {
-      color: '#FFFFFF',
+      color: COLORS.onPrimary,
       fontSize: 18,
-      fontWeight: '900',
+      fontWeight: '700',
       marginTop: -1,
     },
     actionsBlock: {
@@ -809,8 +839,8 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     },
     primaryAction: {
       textAlign: 'center',
-      color: COLORS.teal,
-      fontWeight: '800',
+      color: COLORS.primary,
+      fontWeight: '700',
       fontSize: 14,
     },
     secondaryAction: {
@@ -848,7 +878,7 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       height: 220,
       borderRadius: 110,
       backgroundColor: COLORS.primary,
-      opacity: isDark ? 0.16 : 0.12,
+      opacity: isDark ? 0.12 : 0.08,
     },
     shapeBottomRightSmall: {
       position: 'absolute',

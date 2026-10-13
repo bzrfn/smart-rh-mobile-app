@@ -39,6 +39,11 @@ import {
   useAuth,
 } from '../../contexts/AuthContext';
 
+import {
+  getSmartRhColors,
+  getSmartRhShadow,
+} from '../../design/smartRhTheme';
+
 
 type EstadoIncapacidad =
   | 'pendiente'
@@ -2006,76 +2011,53 @@ function DetailRow({
 function getColors(
   isDark: boolean
 ) {
+  const colors =
+    getSmartRhColors(
+      isDark
+    );
+
   return {
     background:
-      isDark
-        ? '#07111F'
-        : '#F4F7FB',
+      colors.background,
 
     card:
-      isDark
-        ? '#0F1B2D'
-        : '#FFFFFF',
+      colors.card,
 
     cardSoft:
-      isDark
-        ? '#111F33'
-        : '#F9FBFD',
+      colors.cardSoft,
 
     primary:
-      isDark
-        ? '#38BDF8'
-        : '#0A57A4',
+      colors.primary,
 
     primarySoft:
-      isDark
-        ? '#0C2B45'
-        : '#E8F1FA',
+      colors.primarySoft,
 
     teal:
-      isDark
-        ? '#2DD4BF'
-        : '#0F9F93',
+      colors.success,
 
     tealSoft:
-      isDark
-        ? '#123A38'
-        : '#E5F8F4',
+      colors.successSoft,
 
     danger:
-      isDark
-        ? '#FF8A8A'
-        : '#C93D4B',
+      colors.danger,
 
     dangerSoft:
-      isDark
-        ? '#431D28'
-        : '#FDECEE',
+      colors.dangerSoft,
 
     warning:
-      isDark
-        ? '#F5C96A'
-        : '#9A6500',
+      colors.warning,
 
     warningSoft:
-      isDark
-        ? '#43341C'
-        : '#FFF5D8',
+      colors.warningSoft,
 
     text:
-      isDark
-        ? '#F8FAFC'
-        : '#0F172A',
+      colors.text,
 
     muted:
-      isDark
-        ? '#9FB0C4'
-        : '#5B6B81',
+      colors.textMuted,
 
     border:
-      isDark
-        ? '#26364D'
-        : '#D9E1EC',
+      colors.border,
   };
 }
 
@@ -2085,6 +2067,10 @@ function getStyles(
 ) {
   const C =
     getColors(
+      isDark
+    );
+  const shadow =
+    getSmartRhShadow(
       isDark
     );
 
@@ -2130,12 +2116,16 @@ function getStyles(
       padding: 24,
       borderRadius: 28,
       backgroundColor:
-        C.primary,
+        C.card,
+      borderWidth: 1,
+      borderColor:
+        C.border,
+      ...shadow,
     },
 
     eyebrow: {
       color:
-        'rgba(255,255,255,0.78)',
+        C.muted,
       fontSize: 12,
       fontWeight: '900',
       letterSpacing: 1,
@@ -2145,7 +2135,7 @@ function getStyles(
 
     title: {
       marginTop: 8,
-      color: '#FFFFFF',
+      color: C.text,
       fontSize: 30,
       fontWeight: '900',
     },
@@ -2153,7 +2143,7 @@ function getStyles(
     subtitle: {
       marginTop: 10,
       color:
-        'rgba(255,255,255,0.88)',
+        C.muted,
       lineHeight: 22,
     },
 
@@ -2173,6 +2163,7 @@ function getStyles(
       borderRadius: 20,
       backgroundColor:
         C.card,
+      ...shadow,
     },
 
     statValue: {
@@ -2196,6 +2187,7 @@ function getStyles(
       backgroundColor:
         C.card,
       gap: 12,
+      ...shadow,
     },
 
     sectionHeader: {

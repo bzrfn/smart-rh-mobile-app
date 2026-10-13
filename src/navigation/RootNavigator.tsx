@@ -5,6 +5,7 @@ import {
   DefaultTheme,
   NavigationContainer,
   Theme,
+  useNavigationContainerRef,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -38,6 +39,8 @@ import NotificacionesScreen from '../modules/notificaciones/NotificacionesScreen
 import ActividadScreen from '../modules/actividad/ActividadScreen';
 import PerfilScreen from '../modules/perfil/PerfilScreen';
 import SoporteScreen from '../modules/soporte/SoporteScreen';
+import SmartRhSessionLayer from '../components/SmartRhSessionLayer';
+import { getSmartRhColors, getSmartRhShadow } from '../design/smartRhTheme';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -79,14 +82,16 @@ function isAdminRole(role?: string | null) {
 }
 
 function getColors(isDark: boolean) {
+  const colors = getSmartRhColors(isDark);
+
   return {
-    background: isDark ? '#07111F' : '#F4F7FB',
-    surface: isDark ? '#0F1B2D' : '#FFFFFF',
-    primary: isDark ? '#38BDF8' : '#0A57A4',
-    teal: isDark ? '#2DD4BF' : '#22B8B0',
-    text: isDark ? '#F8FAFC' : '#0F172A',
-    textMuted: isDark ? '#9FB0C4' : '#5B6B81',
-    border: isDark ? '#26364D' : '#D9E1EC',
+    background: colors.background,
+    surface: colors.card,
+    primary: colors.primary,
+    teal: colors.success,
+    text: colors.text,
+    textMuted: colors.textMuted,
+    border: colors.border,
   };
 }
 
@@ -109,10 +114,17 @@ function buildNavTheme(isDark: boolean): Theme {
 
 export default function RootNavigator() {
   const { token, ready, theme, user } = useAuth();
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
 
   const isDark = theme === 'dark';
   const colors = getColors(isDark);
   const styles = getStyles(isDark);
+
+  function navigateFromSession(route: string) {
+    if (!navigationRef.isReady()) return;
+
+    (navigationRef as any).navigate(route);
+  }
 
   if (!ready) {
     return (
@@ -127,17 +139,26 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={buildNavTheme(isDark)}>
+    <NavigationContainer ref={navigationRef} theme={buildNavTheme(isDark)}>
       <View style={styles.navigationHost}>
-        {token ? (
-          isAdminRole(user?.role) ? (
-            <AdminNavigator />
+        <View style={token ? styles.navigatorFrameWithSession : styles.navigatorFrame}>
+          {token ? (
+            isAdminRole(user?.role) ? (
+              <AdminNavigator />
+            ) : (
+              <EmployeeNavigator />
+            )
           ) : (
-            <EmployeeNavigator />
-          )
-        ) : (
-          <AuthNavigator />
-        )}
+            <AuthNavigator />
+          )}
+        </View>
+
+        {token ? (
+          <SmartRhSessionLayer
+            isDark={isDark}
+            onNavigate={navigateFromSession}
+          />
+        ) : null}
 
         {token ? <MaxAssistantFloating /> : null}
       </View>
@@ -161,8 +182,8 @@ function AuthNavigator() {
         headerShadowVisible: false,
         headerTintColor: colors.primary,
         headerTitleStyle: {
-          fontWeight: '800',
-          color: colors.primary,
+          fontWeight: '700',
+          color: colors.text,
           fontSize: 18,
         },
         headerBackTitleVisible: false,
@@ -250,8 +271,8 @@ function EmployeeNavigator() {
         headerShadowVisible: false,
         headerTintColor: colors.primary,
         headerTitleStyle: {
-          fontWeight: '900',
-          color: colors.primary,
+          fontWeight: '700',
+          color: colors.text,
           fontSize: 20,
         },
         headerBackTitleVisible: false,
@@ -267,9 +288,10 @@ function EmployeeNavigator() {
         component={HomeScreen}
         options={{
           title: 'SMART RH',
+          headerShown: false,
           headerTitleStyle: {
-            fontWeight: '900',
-            color: colors.primary,
+            fontWeight: '700',
+            color: colors.text,
             fontSize: 22,
           },
         }}
@@ -312,8 +334,8 @@ function AdminNavigator() {
         headerShadowVisible: false,
         headerTintColor: colors.primary,
         headerTitleStyle: {
-          fontWeight: '900',
-          color: colors.primary,
+          fontWeight: '700',
+          color: colors.text,
           fontSize: 20,
         },
         headerBackTitleVisible: false,
@@ -329,9 +351,10 @@ function AdminNavigator() {
         component={AdminDashboardScreen}
         options={{
           title: 'Panel admin',
+          headerShown: false,
           headerTitleStyle: {
-            fontWeight: '900',
-            color: colors.primary,
+            fontWeight: '700',
+            color: colors.text,
             fontSize: 22,
           },
         }}
@@ -382,10 +405,20 @@ function AdminNavigator() {
 
 function getStyles(isDark: boolean) {
   const colors = getColors(isDark);
+  const shadow = getSmartRhShadow(isDark);
 
   return StyleSheet.create({
     navigationHost: {
       flex: 1,
+      backgroundColor: colors.background,
+    },
+    navigatorFrame: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    navigatorFrameWithSession: {
+      flex: 1,
+      paddingBottom: 96,
       backgroundColor: colors.background,
     },
     loadingScreen: {
@@ -404,18 +437,15 @@ function getStyles(isDark: boolean) {
       paddingHorizontal: 24,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: '#000',
-      shadowOpacity: isDark ? 0.28 : 0.08,
-      shadowRadius: 16,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 5,
+      ...shadow,
       borderWidth: 1,
       borderColor: colors.border,
     },
     loadingBrand: {
       fontSize: 26,
-      fontWeight: '900',
-      color: colors.primary,
+      fontWeight: '700',
+      color: colors.text,
+      letterSpacing: 0.6,
       marginBottom: 16,
     },
     loadingText: {

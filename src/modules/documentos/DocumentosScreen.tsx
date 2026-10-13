@@ -14,6 +14,9 @@ import { api } from '../../services/api';
 import { usePrivateMediaUri } from '../../hooks/usePrivateMediaUri';
 import { sharePrivateMedia } from '../../services/privateMedia';
 import { useAuth } from '../../contexts/AuthContext';
+import AnimatedEntrance from '../../components/AnimatedEntrance';
+import ConstellationAccent from '../../components/ConstellationAccent';
+import { getSmartRhColors, getSmartRhShadow } from '../../design/smartRhTheme';
 
 type Contrato = {
   id: number;
@@ -148,33 +151,41 @@ export default function DocumentosScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <Text style={styles.eyebrow}>Expediente digital</Text>
-          <Text style={styles.title}>Documentación laboral</Text>
-          <Text style={styles.subtitle}>
-            Consulta y genera documentos vinculados a tu perfil laboral dentro de SMART RH.
-          </Text>
-        </View>
-
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            {fotoPerfilLocalUri ? (
-              <Image source={{ uri: fotoPerfilLocalUri }} style={styles.avatarImage} />
-            ) : (
-              <Text style={styles.avatarText}>
-                {user?.nombre?.[0]?.toUpperCase() || 'S'}
-              </Text>
-            )}
-          </View>
-
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>
-              {user?.nombre} {user?.apellido}
+        <AnimatedEntrance delay={40}>
+          <View style={styles.hero}>
+            <ConstellationAccent
+              isDark={isDark}
+              style={styles.constellationAccent}
+            />
+            <Text style={styles.eyebrow}>Expediente digital</Text>
+            <Text style={styles.title}>Documentación laboral</Text>
+            <Text style={styles.subtitle}>
+              Consulta y genera documentos vinculados a tu perfil laboral dentro de SMART RH.
             </Text>
-            <Text style={styles.profileMeta}>{user?.correo}</Text>
-            <Text style={styles.profileMeta}>Rol: {user?.role}</Text>
           </View>
-        </View>
+        </AnimatedEntrance>
+
+        <AnimatedEntrance delay={80}>
+          <View style={styles.profileCard}>
+            <View style={styles.avatar}>
+              {fotoPerfilLocalUri ? (
+                <Image source={{ uri: fotoPerfilLocalUri }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarText}>
+                  {user?.nombre?.[0]?.toUpperCase() || 'S'}
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>
+                {user?.nombre} {user?.apellido}
+              </Text>
+              <Text style={styles.profileMeta}>{user?.correo}</Text>
+              <Text style={styles.profileMeta}>Rol: {user?.role}</Text>
+            </View>
+          </View>
+        </AnimatedEntrance>
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -305,45 +316,62 @@ function formatDate(value?: string | null) {
 }
 
 function getColors(isDark: boolean) {
+  const colors = getSmartRhColors(isDark);
+
   return {
-    background: isDark ? '#07111F' : '#F4F7FB',
-    card: isDark ? '#0F1B2D' : '#FFFFFF',
-    cardSoft: isDark ? '#111F33' : '#F9FBFD',
-    primary: isDark ? '#38BDF8' : '#0A57A4',
-    teal: isDark ? '#2DD4BF' : '#22B8B0',
-    text: isDark ? '#F8FAFC' : '#0F172A',
-    muted: isDark ? '#9FB0C4' : '#5B6B81',
-    border: isDark ? '#26364D' : '#D9E1EC',
+    background: colors.background,
+    card: colors.card,
+    cardSoft: colors.cardSoft,
+    primary: colors.primary,
+    teal: colors.success,
+    text: colors.text,
+    muted: colors.textMuted,
+    border: colors.border,
+    onPrimary: colors.onPrimary,
+    primarySoft: colors.primarySoft,
+    primaryBorder: colors.primaryBorder,
+    successSoft: colors.successSoft,
   };
 }
 
 function getStyles(isDark: boolean) {
   const COLORS = getColors(isDark);
+  const shadow = getSmartRhShadow(isDark);
 
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: COLORS.background },
     container: { padding: 20, gap: 16, paddingBottom: 40, backgroundColor: COLORS.background },
 
     hero: {
-      backgroundColor: isDark ? '#0A57A4' : COLORS.primary,
+      position: 'relative',
+      overflow: 'hidden',
+      backgroundColor: COLORS.card,
       borderRadius: 30,
       padding: 24,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      ...shadow,
+    },
+    constellationAccent: {
+      top: -2,
+      right: -18,
+      opacity: isDark ? 0.62 : 0.42,
     },
     eyebrow: {
-      color: 'rgba(255,255,255,0.78)',
+      color: COLORS.muted,
       fontWeight: '900',
       textTransform: 'uppercase',
       letterSpacing: 1,
     },
     title: {
       marginTop: 8,
-      color: '#FFFFFF',
+      color: COLORS.text,
       fontWeight: '900',
       fontSize: 30,
     },
     subtitle: {
       marginTop: 10,
-      color: 'rgba(255,255,255,0.82)',
+      color: COLORS.muted,
       lineHeight: 22,
     },
 
@@ -356,12 +384,13 @@ function getStyles(isDark: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 14,
+      ...shadow,
     },
     avatar: {
       width: 74,
       height: 74,
       borderRadius: 24,
-      backgroundColor: isDark ? 'rgba(45,212,191,0.14)' : 'rgba(34,184,176,0.14)',
+      backgroundColor: COLORS.successSoft,
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
@@ -385,6 +414,7 @@ function getStyles(isDark: boolean) {
       padding: 20,
       borderWidth: 1,
       borderColor: COLORS.border,
+      ...shadow,
     },
     cardHeader: {
       flexDirection: 'row',
@@ -396,14 +426,14 @@ function getStyles(isDark: boolean) {
     cardText: { marginTop: 8, color: COLORS.muted, lineHeight: 22 },
 
     statusOk: {
-      backgroundColor: isDark ? 'rgba(45,212,191,0.14)' : 'rgba(34,184,176,0.14)',
+      backgroundColor: COLORS.successSoft,
       borderRadius: 999,
       paddingHorizontal: 10,
       paddingVertical: 6,
     },
     statusOkText: { color: COLORS.teal, fontWeight: '900', fontSize: 12 },
     statusPending: {
-      backgroundColor: isDark ? 'rgba(159,176,196,0.12)' : 'rgba(91,107,129,0.12)',
+      backgroundColor: COLORS.primarySoft,
       borderRadius: 999,
       paddingHorizontal: 10,
       paddingVertical: 6,

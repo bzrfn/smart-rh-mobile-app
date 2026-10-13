@@ -12,6 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import AnimatedEntrance from '../../components/AnimatedEntrance';
+import ConstellationAccent from '../../components/ConstellationAccent';
+import { getSmartRhColors, getSmartRhShadow } from '../../design/smartRhTheme';
 
 type Props = {
   navigation: any;
@@ -151,42 +154,50 @@ export default function AsistenciaScreen({ navigation }: Props) {
         <View style={styles.shapeBottomRightLarge} />
         <View style={styles.shapeBottomRightSmall} />
 
-        <View style={styles.heroCard}>
-          <View style={styles.heroTopRow}>
-            <View style={styles.heroPill}>
-              <Text style={styles.heroPillText}>SMART RH</Text>
+        <AnimatedEntrance delay={40}>
+          <View style={styles.heroCard}>
+            <ConstellationAccent
+              isDark={isDark}
+              style={styles.constellationAccent}
+            />
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroPill}>
+                <Text style={styles.heroPillText}>SMART RH</Text>
+              </View>
+
+              <View style={styles.heroBadge}>
+                <Text style={styles.heroBadgeText}>Reporte semanal</Text>
+              </View>
             </View>
 
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>Reporte semanal</Text>
-            </View>
-          </View>
-
-          <Text style={styles.eyebrow}>Consulta personal</Text>
-          <Text style={styles.title}>Asistencia</Text>
-          <Text style={styles.text}>
-            Visualiza tu asistencia semanal, revisa entradas y salidas registradas
-            y consulta el estado de validación de cada día.
-          </Text>
-
-          <View style={styles.heroInfoCard}>
-            <Text style={styles.heroInfoTitle}>Semana actual</Text>
-            <Text style={styles.heroInfoText}>
-              {weeklyReport?.week
-                ? `${formatDateDisplay(weeklyReport.week.start)} al ${formatDateDisplay(
-                    weeklyReport.week.end
-                  )}`
-                : 'Sin rango semanal disponible'}
+            <Text style={styles.eyebrow}>Consulta personal</Text>
+            <Text style={styles.title}>Asistencia</Text>
+            <Text style={styles.text}>
+              Visualiza tu asistencia semanal, revisa entradas y salidas registradas
+              y consulta el estado de validación de cada día.
             </Text>
-          </View>
-        </View>
 
-        <View style={styles.summaryRow}>
-          <SummaryCard label="Total" value={summary.total} accent="blue" styles={styles} />
-          <SummaryCard label="Pendientes" value={summary.pendientes} accent="blue" styles={styles} />
-          <SummaryCard label="Aprobadas" value={summary.aprobadas} accent="teal" styles={styles} />
-          <SummaryCard label="Con salida" value={summary.conSalida} accent="teal" styles={styles} />
-        </View>
+            <View style={styles.heroInfoCard}>
+              <Text style={styles.heroInfoTitle}>Semana actual</Text>
+              <Text style={styles.heroInfoText}>
+                {weeklyReport?.week
+                  ? `${formatDateDisplay(weeklyReport.week.start)} al ${formatDateDisplay(
+                      weeklyReport.week.end
+                    )}`
+                  : 'Sin rango semanal disponible'}
+              </Text>
+            </View>
+          </View>
+        </AnimatedEntrance>
+
+        <AnimatedEntrance delay={90}>
+          <View style={styles.summaryRow}>
+            <SummaryCard label="Total" value={summary.total} accent="blue" styles={styles} />
+            <SummaryCard label="Pendientes" value={summary.pendientes} accent="blue" styles={styles} />
+            <SummaryCard label="Aprobadas" value={summary.aprobadas} accent="teal" styles={styles} />
+            <SummaryCard label="Con salida" value={summary.conSalida} accent="teal" styles={styles} />
+          </View>
+        </AnimatedEntrance>
 
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
@@ -442,46 +453,52 @@ function formatDateDisplay(value?: string) {
 }
 
 function getColors(isDark: boolean) {
+  const colors = getSmartRhColors(isDark);
+
   return {
-    background: isDark ? '#07111F' : '#F4F7FB',
-    card: isDark ? '#0F1B2D' : '#FFFFFF',
-    cardSoft: isDark ? '#111F33' : '#F9FBFD',
-    primary: isDark ? '#38BDF8' : '#0A57A4',
-    primaryDark: isDark ? '#0EA5E9' : '#084785',
-    primarySoft: isDark ? 'rgba(56,189,248,0.14)' : 'rgba(10,87,164,0.10)',
-    teal: isDark ? '#2DD4BF' : '#22B8B0',
-    tealSoft: isDark ? '#14B8A6' : '#67D5CC',
-    tealBg: isDark ? 'rgba(45,212,191,0.14)' : 'rgba(34,184,176,0.12)',
-    text: isDark ? '#F8FAFC' : '#0F172A',
-    textMuted: isDark ? '#9FB0C4' : '#5B6B81',
-    border: isDark ? '#26364D' : '#D9E1EC',
-    danger: '#D64545',
-    dangerBg: 'rgba(214,69,69,0.12)',
-    warningBg: isDark ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.14)',
-    warningText: '#B45309',
+    background: colors.background,
+    card: colors.card,
+    cardSoft: colors.cardSoft,
+    primary: colors.primary,
+    primaryDark: colors.primaryDark,
+    primarySoft: colors.primarySoft,
+    teal: colors.success,
+    tealSoft: colors.success,
+    tealBg: colors.successSoft,
+    text: colors.text,
+    textMuted: colors.textMuted,
+    border: colors.border,
+    danger: colors.danger,
+    dangerBg: colors.dangerSoft,
+    warningBg: colors.warningSoft,
+    warningText: colors.warning,
   };
 }
 
 function getStyles(isDark: boolean) {
   const COLORS = getColors(isDark);
+  const shadow = getSmartRhShadow(isDark);
 
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: COLORS.background },
     container: { padding: 20, paddingBottom: 36, overflow: 'hidden', backgroundColor: COLORS.background },
 
     heroCard: {
+      position: 'relative',
+      overflow: 'hidden',
       backgroundColor: COLORS.card,
       borderRadius: 30,
       padding: 24,
       marginBottom: 18,
-      shadowColor: '#000',
-      shadowOpacity: isDark ? 0.28 : 0.09,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 6,
       borderWidth: 1,
       borderColor: COLORS.border,
       zIndex: 2,
+      ...shadow,
+    },
+    constellationAccent: {
+      top: 8,
+      right: -18,
+      opacity: isDark ? 0.62 : 0.42,
     },
     heroTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     heroPill: { backgroundColor: COLORS.primarySoft, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
@@ -496,7 +513,7 @@ function getStyles(isDark: boolean) {
     heroInfoText: { marginTop: 6, fontSize: 14, color: COLORS.textMuted, lineHeight: 21 },
 
     summaryRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 18, zIndex: 2 },
-    summaryCard: { width: '48%', backgroundColor: COLORS.card, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: COLORS.border, elevation: 3, marginBottom: 12 },
+    summaryCard: { width: '48%', backgroundColor: COLORS.card, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: COLORS.border, marginBottom: 12, ...shadow },
     summaryAccent: { width: 42, height: 6, borderRadius: 999, marginBottom: 12 },
     summaryAccentBlue: { backgroundColor: COLORS.primary },
     summaryAccentTeal: { backgroundColor: COLORS.teal },
@@ -504,7 +521,7 @@ function getStyles(isDark: boolean) {
     summaryValue: { fontSize: 22, fontWeight: '900', color: COLORS.text },
     summaryLabel: { marginTop: 4, fontSize: 13, color: COLORS.textMuted, fontWeight: '700' },
 
-    sectionCard: { backgroundColor: COLORS.card, borderRadius: 26, padding: 20, elevation: 4, borderWidth: 1, borderColor: COLORS.border, zIndex: 2, marginBottom: 18 },
+    sectionCard: { backgroundColor: COLORS.card, borderRadius: 26, padding: 20, borderWidth: 1, borderColor: COLORS.border, zIndex: 2, marginBottom: 18, ...shadow },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
     sectionHeaderText: { flex: 1, marginRight: 12 },
     sectionEyebrow: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, color: COLORS.textMuted, marginBottom: 6 },

@@ -13,6 +13,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import AnimatedEntrance from '../../components/AnimatedEntrance';
+import ConstellationAccent from '../../components/ConstellationAccent';
+import { getSmartRhColors, getSmartRhShadow } from '../../design/smartRhTheme';
 
 type Props = {
   navigation: any;
@@ -58,7 +61,7 @@ function countIncapacidadesRevision(value: any) {
 }
 
 export default function AdminDashboardScreen({ navigation }: Props) {
-  const { user, token, logout, theme, toggleTheme } = useAuth();
+  const { user, token, logout, theme } = useAuth();
 
   const isDark = theme === 'dark';
   const styles = getStyles(isDark);
@@ -193,23 +196,52 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           />
         }
       >
-        <View style={styles.hero}>
-          <View style={styles.heroTopRow}>
-            <View style={styles.brandPill}>
-              <Text style={styles.brandPillText}>SMART RH</Text>
+        <AnimatedEntrance delay={40}>
+          <View style={styles.hero}>
+            <View style={styles.heroRail} />
+            <View style={styles.heroGlow} />
+            <ConstellationAccent
+              isDark={isDark}
+              style={styles.constellationAccent}
+            />
+            <View style={styles.heroTopRow}>
+              <View style={styles.brandPill}>
+                <Text style={styles.brandPillText}>SMART RH</Text>
+              </View>
+              <View style={styles.adminPill}>
+                <Text style={styles.adminPillText}>Admin móvil</Text>
+              </View>
             </View>
-            <View style={styles.adminPill}>
-              <Text style={styles.adminPillText}>Admin móvil</Text>
+
+            <Text style={styles.eyebrow}>Panel administrativo</Text>
+            <Text style={styles.title}>{adminName}</Text>
+            <Text style={styles.subtitle}>
+              Herramientas móviles para validación de credenciales, revisión de
+              pendientes y seguimiento administrativo.
+            </Text>
+
+            <View style={styles.heroCommandRow}>
+              <View style={styles.heroCommandChip}>
+                <Text style={styles.heroCommandValue}>
+                  {summary.asistenciaPendiente}
+                </Text>
+                <Text style={styles.heroCommandLabel}>Asistencia</Text>
+              </View>
+              <View style={styles.heroCommandChip}>
+                <Text style={styles.heroCommandValue}>
+                  {summary.incapacidadesRevision}
+                </Text>
+                <Text style={styles.heroCommandLabel}>Incapacidades</Text>
+              </View>
+              <View style={styles.heroCommandChip}>
+                <Text style={styles.heroCommandValue}>
+                  {summary.notificacionesPendientes}
+                </Text>
+                <Text style={styles.heroCommandLabel}>Avisos</Text>
+              </View>
             </View>
           </View>
-
-          <Text style={styles.eyebrow}>Panel administrativo</Text>
-          <Text style={styles.title}>{adminName}</Text>
-          <Text style={styles.subtitle}>
-            Herramientas móviles para validación de credenciales, revisión de
-            pendientes y seguimiento administrativo.
-          </Text>
-        </View>
+        </AnimatedEntrance>
 
         {loading ? (
           <View style={styles.centerCard}>
@@ -224,107 +256,100 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           </View>
         ) : null}
 
-        <View style={styles.statsGrid}>
-          <StatCard
-            label="Asistencia"
-            value={String(summary.asistenciaPendiente)}
-            detail="Pendientes de revisión"
-            accent={summary.asistenciaPendiente > 0 ? 'gold' : 'teal'}
-            styles={styles}
-          />
-          <StatCard
-            label="Incapacidades"
-            value={String(summary.incapacidadesRevision)}
-            detail="Por revisar"
-            accent={summary.incapacidadesRevision > 0 ? 'gold' : 'teal'}
-            styles={styles}
-          />
-          <StatCard
-            label="Avisos"
-            value={String(summary.notificacionesPendientes)}
-            detail="No leídos"
-            accent={summary.notificacionesPendientes > 0 ? 'gold' : 'teal'}
-            styles={styles}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Herramientas admin</Text>
-          <Text style={styles.sectionSubtitle}>
-            Accesos separados del flujo normal del empleado.
-          </Text>
-
-          <View style={styles.actionGrid}>
-            <ActionCard
-              code="QR"
-              title="Verificar credencial QR"
-              detail="Valida identidad, vigencia y estado de la credencial."
-              accent="teal"
-              onPress={() => navigation.navigate('VerificarCredencial')}
+        <AnimatedEntrance delay={90}>
+          <View style={styles.statsGrid}>
+            <StatCard
+              label="Asistencia"
+              value={String(summary.asistenciaPendiente)}
+              detail="Pendientes de revisión"
+              accent={summary.asistenciaPendiente > 0 ? 'gold' : 'teal'}
               styles={styles}
             />
-            <ActionCard
-              code="CL"
-              title="Calendario laboral"
-              detail="Agenda mensual de asistencia, vacaciones e incapacidades."
-              accent="teal"
-              onPress={() => navigation.navigate('CalendarioLaboral')}
+            <StatCard
+              label="Incapacidades"
+              value={String(summary.incapacidadesRevision)}
+              detail="Por revisar"
+              accent={summary.incapacidadesRevision > 0 ? 'gold' : 'teal'}
               styles={styles}
             />
-            <ActionCard
-              code="AS"
-              title="Pendientes de asistencia"
-              detail={`${summary.asistenciaPendiente} registros pendientes.`}
-              accent={summary.asistenciaPendiente > 0 ? 'gold' : 'blue'}
-              onPress={() => navigation.navigate('AdminAsistenciaPendientes')}
-              styles={styles}
-            />
-            <ActionCard
-              code="IN"
-              title="Incapacidades por revisar"
-              detail={`${summary.incapacidadesRevision} solicitudes detectadas.`}
-              accent={summary.incapacidadesRevision > 0 ? 'gold' : 'blue'}
-              onPress={() => navigation.navigate('AdminIncapacidadesRevision')}
-              styles={styles}
-            />
-            <ActionCard
-              code="NT"
-              title="Solicitudes y notificaciones"
-              detail="Consulta avisos administrativos recientes."
-              accent="blue"
-              onPress={() => navigation.navigate('Notificaciones')}
-              styles={styles}
-            />
-            <ActionCard
-              code="PF"
-              title="Perfil admin"
-              detail="Datos de la cuenta administrativa."
-              accent="teal"
-              onPress={() => navigation.navigate('AdminPerfil')}
-              styles={styles}
-            />
-            <ActionCard
-              code="US"
-              title="Usuarios y permisos"
-              detail="Administración móvil existente."
-              accent="blue"
-              onPress={() => navigation.navigate('AdminUsuarios')}
+            <StatCard
+              label="Avisos"
+              value={String(summary.notificacionesPendientes)}
+              detail="No leídos"
+              accent={summary.notificacionesPendientes > 0 ? 'gold' : 'teal'}
               styles={styles}
             />
           </View>
-        </View>
+        </AnimatedEntrance>
 
-        <View style={styles.footerActions}>
-          <Pressable style={styles.secondaryButton} onPress={toggleTheme}>
-            <Text style={styles.secondaryButtonText}>
-              {isDark ? 'Modo claro' : 'Modo oscuro'}
+        <AnimatedEntrance delay={140}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Herramientas admin</Text>
+            <Text style={styles.sectionSubtitle}>
+              Accesos separados del flujo normal del empleado.
             </Text>
-          </Pressable>
 
-          <Pressable style={styles.logoutButton} onPress={confirmLogout}>
-            <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
-          </Pressable>
-        </View>
+            <View style={styles.actionGrid}>
+              <ActionCard
+                code="QR"
+                title="Verificar credencial QR"
+                detail="Valida identidad, vigencia y estado de la credencial."
+                accent="teal"
+                onPress={() => navigation.navigate('VerificarCredencial')}
+                styles={styles}
+              />
+              <ActionCard
+                code="CL"
+                title="Calendario laboral"
+                detail="Agenda mensual de asistencia, vacaciones e incapacidades."
+                accent="teal"
+                onPress={() => navigation.navigate('CalendarioLaboral')}
+                styles={styles}
+              />
+              <ActionCard
+                code="AS"
+                title="Pendientes de asistencia"
+                detail={`${summary.asistenciaPendiente} registros pendientes.`}
+                accent={summary.asistenciaPendiente > 0 ? 'gold' : 'blue'}
+                onPress={() => navigation.navigate('AdminAsistenciaPendientes')}
+                styles={styles}
+              />
+              <ActionCard
+                code="IN"
+                title="Incapacidades por revisar"
+                detail={`${summary.incapacidadesRevision} solicitudes detectadas.`}
+                accent={summary.incapacidadesRevision > 0 ? 'gold' : 'blue'}
+                onPress={() => navigation.navigate('AdminIncapacidadesRevision')}
+                styles={styles}
+              />
+              <ActionCard
+                code="NT"
+                title="Solicitudes y notificaciones"
+                detail="Consulta avisos administrativos recientes."
+                accent="blue"
+                onPress={() => navigation.navigate('Notificaciones')}
+                styles={styles}
+              />
+              <ActionCard
+                code="PF"
+                title="Perfil admin"
+                detail="Datos de la cuenta administrativa."
+                accent="teal"
+                onPress={() => navigation.navigate('AdminPerfil')}
+                styles={styles}
+              />
+              <ActionCard
+                code="US"
+                title="Usuarios y permisos"
+                detail="Administración móvil existente."
+                accent="blue"
+                onPress={() => navigation.navigate('AdminUsuarios')}
+                styles={styles}
+              />
+            </View>
+          </View>
+        </AnimatedEntrance>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -382,37 +407,55 @@ function ActionCard({
           {code}
         </Text>
       </View>
-      <Text style={styles.actionTitle}>{title}</Text>
-      <Text style={styles.actionDetail}>{detail}</Text>
+      <View style={styles.actionTextBlock}>
+        <Text style={styles.actionTitle}>{title}</Text>
+        <Text style={styles.actionDetail}>{detail}</Text>
+      </View>
+      <Text style={styles.actionArrow}>›</Text>
     </Pressable>
   );
 }
 
 function getColors(isDark: boolean) {
+  const colors = getSmartRhColors(isDark);
+
   return {
-    background: isDark ? '#07111F' : '#F4F7FB',
-    card: isDark ? '#0F1B2D' : '#FFFFFF',
-    cardSoft: isDark ? '#111F33' : '#F9FBFD',
-    primary: isDark ? '#38BDF8' : '#0A57A4',
-    primarySoft: isDark ? 'rgba(56,189,248,0.14)' : 'rgba(10,87,164,0.10)',
-    teal: isDark ? '#2DD4BF' : '#22B8B0',
-    tealBg: isDark ? 'rgba(45,212,191,0.14)' : 'rgba(34,184,176,0.12)',
-    gold: isDark ? '#FACC15' : '#B7791F',
-    goldBg: isDark ? 'rgba(250,204,21,0.14)' : 'rgba(183,121,31,0.12)',
-    danger: isDark ? '#FCA5A5' : '#B42318',
-    dangerBg: isDark ? 'rgba(248,113,113,0.12)' : 'rgba(180,35,24,0.08)',
-    text: isDark ? '#F8FAFC' : '#0F172A',
-    muted: isDark ? '#9FB0C4' : '#5B6B81',
-    border: isDark ? '#26364D' : '#D9E1EC',
+    background: colors.background,
+    card: colors.card,
+    cardSoft: colors.cardSoft,
+    primary: colors.primary,
+    primaryText: colors.primary,
+    heroSurface: colors.card,
+    heroSurfaceSoft: colors.cardSoft,
+    heroText: colors.text,
+    heroMuted: colors.textMuted,
+    heroAccent: colors.primary,
+    actionPrimary: colors.primary,
+    primarySoft: colors.primarySoft,
+    teal: colors.success,
+    tealBg: colors.successSoft,
+    gold: colors.warning,
+    goldBg: colors.warningSoft,
+    danger: colors.danger,
+    dangerBg: colors.dangerSoft,
+    text: colors.text,
+    muted: colors.textMuted,
+    border: colors.border,
   };
 }
 
 function getStyles(isDark: boolean) {
   const COLORS = getColors(isDark);
+  const shadow = getSmartRhShadow(isDark);
 
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: COLORS.background },
-    container: { padding: 20, gap: 16, paddingBottom: 40 },
+    container: {
+      paddingHorizontal: 18,
+      paddingTop: 14,
+      gap: 16,
+      paddingBottom: 132,
+    },
     blockedWrap: {
       flex: 1,
       justifyContent: 'center',
@@ -420,16 +463,38 @@ function getStyles(isDark: boolean) {
       backgroundColor: COLORS.background,
     },
     hero: {
-      backgroundColor: COLORS.card,
-      borderRadius: 28,
-      padding: 22,
+      position: 'relative',
+      overflow: 'hidden',
+      backgroundColor: COLORS.heroSurface,
+      borderRadius: 34,
+      padding: 24,
       borderWidth: 1,
       borderColor: COLORS.border,
-      shadowColor: '#000',
-      shadowOpacity: isDark ? 0.28 : 0.08,
-      shadowRadius: 16,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 5,
+      ...shadow,
+    },
+    heroRail: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 7,
+      backgroundColor: COLORS.heroAccent,
+    },
+    heroGlow: {
+      position: 'absolute',
+      right: -46,
+      top: -38,
+      width: 156,
+      height: 156,
+      borderRadius: 78,
+      backgroundColor: isDark
+        ? 'rgba(12,66,67,0.18)'
+        : 'rgba(12,66,67,0.16)',
+    },
+    constellationAccent: {
+      top: 4,
+      right: -18,
+      opacity: isDark ? 0.34 : 0.5,
     },
     heroTopRow: {
       flexDirection: 'row',
@@ -439,30 +504,34 @@ function getStyles(isDark: boolean) {
       marginBottom: 18,
     },
     brandPill: {
-      backgroundColor: COLORS.primarySoft,
+      backgroundColor: COLORS.heroSurfaceSoft,
       borderRadius: 999,
       paddingHorizontal: 12,
       paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: COLORS.border,
     },
     brandPillText: {
-      color: COLORS.primary,
+      color: COLORS.heroAccent,
       fontSize: 12,
       fontWeight: '900',
       letterSpacing: 0.8,
     },
     adminPill: {
-      backgroundColor: COLORS.tealBg,
+      backgroundColor: COLORS.heroSurfaceSoft,
       borderRadius: 999,
       paddingHorizontal: 12,
       paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: COLORS.border,
     },
     adminPillText: {
-      color: COLORS.teal,
+      color: COLORS.heroText,
       fontSize: 12,
       fontWeight: '900',
     },
     eyebrow: {
-      color: COLORS.muted,
+      color: COLORS.heroMuted,
       fontSize: 12,
       fontWeight: '900',
       textTransform: 'uppercase',
@@ -470,15 +539,43 @@ function getStyles(isDark: boolean) {
     },
     title: {
       marginTop: 8,
-      color: COLORS.text,
+      color: COLORS.heroText,
       fontSize: 28,
       fontWeight: '900',
     },
     subtitle: {
       marginTop: 10,
-      color: COLORS.muted,
+      color: COLORS.heroMuted,
       lineHeight: 22,
       fontSize: 15,
+    },
+    heroCommandRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 20,
+    },
+    heroCommandChip: {
+      flex: 1,
+      minHeight: 68,
+      borderRadius: 18,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: COLORS.heroSurfaceSoft,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      justifyContent: 'center',
+    },
+    heroCommandValue: {
+      color: COLORS.heroAccent,
+      fontSize: 20,
+      fontWeight: '900',
+    },
+    heroCommandLabel: {
+      marginTop: 2,
+      color: COLORS.heroMuted,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
     },
     card: {
       backgroundColor: COLORS.card,
@@ -535,6 +632,7 @@ function getStyles(isDark: boolean) {
       borderRadius: 20,
       padding: 14,
       borderWidth: 1,
+      ...shadow,
     },
     statDot: {
       width: 10,
@@ -572,17 +670,18 @@ function getStyles(isDark: boolean) {
       lineHeight: 21,
     },
     actionGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
+      gap: 10,
     },
     actionCard: {
-      width: '48%',
-      minHeight: 154,
+      minHeight: 92,
       backgroundColor: COLORS.card,
-      borderRadius: 20,
-      padding: 16,
+      borderRadius: 24,
+      padding: 14,
       borderWidth: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      ...shadow,
     },
     actionCode: {
       width: 42,
@@ -590,15 +689,17 @@ function getStyles(isDark: boolean) {
       borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 14,
     },
     actionCodeText: {
       fontSize: 13,
       fontWeight: '900',
     },
+    actionTextBlock: {
+      flex: 1,
+    },
     actionTitle: {
       color: COLORS.text,
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '900',
       lineHeight: 20,
     },
@@ -607,6 +708,12 @@ function getStyles(isDark: boolean) {
       color: COLORS.muted,
       fontSize: 12,
       lineHeight: 18,
+    },
+    actionArrow: {
+      color: COLORS.muted,
+      fontSize: 28,
+      fontWeight: '500',
+      marginRight: 2,
     },
     infoCard: {
       backgroundColor: COLORS.cardSoft,
@@ -632,7 +739,7 @@ function getStyles(isDark: boolean) {
       marginTop: 18,
       minHeight: 50,
       borderRadius: 16,
-      backgroundColor: COLORS.primary,
+      backgroundColor: COLORS.actionPrimary,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -649,7 +756,7 @@ function getStyles(isDark: boolean) {
       justifyContent: 'center',
     },
     secondaryButtonText: {
-      color: COLORS.primary,
+      color: COLORS.primaryText,
       fontSize: 15,
       fontWeight: '900',
     },
@@ -675,7 +782,7 @@ function getStyles(isDark: boolean) {
     bgTeal: { backgroundColor: COLORS.tealBg },
     bgGold: { backgroundColor: COLORS.goldBg },
     bgDanger: { backgroundColor: COLORS.dangerBg },
-    textBlue: { color: COLORS.primary },
+    textBlue: { color: COLORS.primaryText },
     textTeal: { color: COLORS.teal },
     textGold: { color: COLORS.gold },
     textDanger: { color: COLORS.danger },

@@ -18,6 +18,10 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import AnimatedEntrance from '../../components/AnimatedEntrance';
+import ConstellationAccent from '../../components/ConstellationAccent';
+import PasswordEyeIcon from '../../components/PasswordEyeIcon';
+import { getSmartRhColors, getSmartRhShadow } from '../../design/smartRhTheme';
 
 type Props = { navigation: any };
 
@@ -146,7 +150,9 @@ export default function RegisterScreen({ navigation }: Props) {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+            <AnimatedEntrance delay={40}>
             <View style={styles.heroCard}>
+              <ConstellationAccent isDark={isDark} style={styles.constellation} />
               <View style={styles.heroTopRow}>
                 <View style={styles.heroPill}>
                   <Text style={styles.heroPillText}>SMART RH</Text>
@@ -162,7 +168,9 @@ export default function RegisterScreen({ navigation }: Props) {
                 Registra tu cuenta. Al finalizar recibirás un código de confirmación por correo.
               </Text>
             </View>
+            </AnimatedEntrance>
 
+            <AnimatedEntrance delay={140}>
             <View style={styles.card}>
               <Pressable style={styles.photoBox} onPress={pickImage}>
                 <View style={styles.photoPreview}>
@@ -224,6 +232,7 @@ export default function RegisterScreen({ navigation }: Props) {
                 <Text style={styles.secondaryAction}>Volver al login</Text>
               </Pressable>
             </View>
+            </AnimatedEntrance>
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -262,9 +271,10 @@ function Input({
             style={styles.passwordToggle}
             onPress={onToggleSecure}
           >
-            <Text style={styles.passwordToggleText}>
-              {secureVisible ? 'Ocultar' : 'Ver'}
-            </Text>
+            <PasswordEyeIcon
+              color={colors.primary}
+              hidden={!secureVisible}
+            />
           </Pressable>
         </View>
       ) : (
@@ -281,23 +291,30 @@ function Input({
 }
 
 function getColors(isDark: boolean) {
+  const colors = getSmartRhColors(isDark);
+
   return {
-    background: isDark ? '#07111F' : '#F4F7FB',
-    card: isDark ? '#0F1B2D' : '#FFFFFF',
-    cardSoft: isDark ? '#111F33' : '#F9FBFD',
-    primary: isDark ? '#38BDF8' : '#0A57A4',
-    primaryDark: isDark ? '#0EA5E9' : '#084785',
-    primarySoft: isDark ? 'rgba(56,189,248,0.14)' : 'rgba(10,87,164,0.10)',
-    teal: isDark ? '#2DD4BF' : '#22B8B0',
-    tealBg: isDark ? 'rgba(45,212,191,0.14)' : 'rgba(34,184,176,0.12)',
-    text: isDark ? '#F8FAFC' : '#0F172A',
-    textMuted: isDark ? '#9FB0C4' : '#5B6B81',
-    border: isDark ? '#26364D' : '#D9E1EC',
-    placeholder: isDark ? '#71839B' : '#8B9AAF',
+    background: colors.background,
+    card: colors.card,
+    cardSoft: colors.cardSoft,
+    primary: colors.primary,
+    primaryDark: colors.primaryDark,
+    primarySoft: colors.primarySoft,
+    teal: colors.success,
+    tealBg: colors.successSoft,
+    link: colors.link,
+    maxAccent: colors.maxAccent,
+    text: colors.text,
+    textMuted: colors.textMuted,
+    border: colors.border,
+    placeholder: colors.placeholder,
+    onPrimary: colors.onPrimary,
   };
 }
 
 function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
+  const shadow = getSmartRhShadow(isDark);
+
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: COLORS.background },
     keyboard: { flex: 1 },
@@ -313,11 +330,12 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       marginBottom: 18,
       borderWidth: 1,
       borderColor: COLORS.border,
-      shadowColor: '#000',
-      shadowOpacity: isDark ? 0.28 : 0.09,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 6,
+      overflow: 'hidden',
+      ...shadow,
+    },
+    constellation: {
+      right: -18,
+      top: 38,
     },
     heroTopRow: {
       flexDirection: 'row',
@@ -332,9 +350,9 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       borderRadius: 999,
     },
     heroPillText: {
-      color: COLORS.primary,
+      color: COLORS.link,
       fontSize: 12,
-      fontWeight: '900',
+      fontWeight: '700',
       letterSpacing: 0.8,
     },
     heroBadge: {
@@ -346,14 +364,14 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     heroBadgeText: {
       color: COLORS.teal,
       fontSize: 12,
-      fontWeight: '900',
+      fontWeight: '700',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
     },
     heroTitle: {
       fontSize: 32,
-      fontWeight: '900',
-      color: COLORS.primary,
+      fontWeight: '700',
+      color: COLORS.text,
     },
     heroSubtitle: {
       marginTop: 10,
@@ -367,11 +385,7 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       padding: 22,
       borderWidth: 1,
       borderColor: COLORS.border,
-      shadowColor: '#000',
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 16,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 5,
+      ...shadow,
     },
     photoBox: {
       flexDirection: 'row',
@@ -397,13 +411,13 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     photoImage: { width: '100%', height: '100%' },
     photoInitial: {
       fontSize: 32,
-      fontWeight: '900',
-      color: COLORS.primary,
+      fontWeight: '700',
+      color: COLORS.link,
     },
     photoTextBox: { flex: 1 },
     photoTitle: {
       fontSize: 15,
-      fontWeight: '900',
+      fontWeight: '700',
       color: COLORS.text,
     },
     photoText: {
@@ -416,7 +430,7 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     label: {
       marginBottom: 8,
       fontSize: 13,
-      fontWeight: '800',
+      fontWeight: '600',
       color: COLORS.textMuted,
     },
     input: {
@@ -434,12 +448,12 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       justifyContent: 'center',
     },
     passwordInput: {
-      paddingRight: 86,
+      paddingRight: 64,
     },
     passwordToggle: {
       position: 'absolute',
       right: 12,
-      minWidth: 58,
+      width: 40,
       height: 34,
       borderRadius: 17,
       alignItems: 'center',
@@ -447,11 +461,6 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       backgroundColor: COLORS.primarySoft,
       borderWidth: 1,
       borderColor: COLORS.border,
-    },
-    passwordToggleText: {
-      color: COLORS.primary,
-      fontSize: 12,
-      fontWeight: '900',
     },
     primaryButton: {
       marginTop: 8,
@@ -468,16 +477,16 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     },
     primaryButtonDisabled: { opacity: 0.85 },
     primaryButtonText: {
-      color: '#FFFFFF',
+      color: COLORS.onPrimary,
       fontSize: 15,
-      fontWeight: '900',
+      fontWeight: '700',
       textAlign: 'center',
     },
     secondaryAction: {
       marginTop: 18,
       textAlign: 'center',
-      color: COLORS.teal,
-      fontWeight: '900',
+      color: COLORS.link,
+      fontWeight: '700',
     },
   });
 }
