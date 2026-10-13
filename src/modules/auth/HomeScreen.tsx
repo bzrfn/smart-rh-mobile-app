@@ -20,12 +20,16 @@ import {
   configureNotifications,
   showLocalNotificationOnce,
 } from '../../services/notifications';
+import AnimatedEntrance from '../../components/AnimatedEntrance';
+import ConstellationAccent from '../../components/ConstellationAccent';
+import { getSmartRhColors, getSmartRhShadow } from '../../design/smartRhTheme';
 
 type Props = {
   navigation: any;
 };
 
 type Accent = 'blue' | 'teal' | 'danger' | 'muted' | 'gold';
+type ModuleSectionKey = 'admin' | 'trabajo' | 'documentos' | 'cuenta';
 
 type Notificacion = {
   _id: string;
@@ -248,16 +252,6 @@ function getNotificationAction(item?: Notificacion | null): NotificationAction {
   };
 }
 
-function getNotificationAccent(item?: Notificacion | null): Accent {
-  const tipo = normalizeText(item?.tipo);
-
-  if (tipo.includes('SOPORTE') || tipo.includes('TICKET')) return 'teal';
-  if (tipo.includes('RESUELTO') || tipo.includes('CERRADO')) return 'teal';
-  if (tipo.includes('RECORDATORIO') || tipo.includes('PENDIENTE')) return 'gold';
-
-  return 'blue';
-}
-
 export default function HomeScreen({ navigation }: Props) {
   const { user, permisos, logout, theme, toggleTheme, token } = useAuth();
 
@@ -270,13 +264,19 @@ export default function HomeScreen({ navigation }: Props) {
   const [pairingCode, setPairingCode] = useState<PairingCodeResponse | null>(null);
   const [pairingCodeExpiresAt, setPairingCodeExpiresAt] = useState<number | null>(null);
   const [loadingWearable, setLoadingWearable] = useState(false);
+  const [activeModuleSection, setActiveModuleSection] =
+    useState<ModuleSectionKey | null>('trabajo');
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+  const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
+  const [notificationPreviewItems, setNotificationPreviewItems] = useState<
+    Notificacion[]
+  >([]);
   const [photoLocalUri, setPhotoLocalUri] = useState('');
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
 
   const loadingNotificationsRef = useRef(false);
   const lastNotificationShownRef = useRef<string | null>(null);
   const lastNotificationTimeRef = useRef<number>(0);
-  const dismissedNotificationIdRef = useRef<string | null>(null);
 
   const hasProfilePhoto = Boolean(user?.foto_perfil_url);
   const hasCredential = Boolean(user?.credencial_url);
@@ -328,16 +328,6 @@ export default function HomeScreen({ navigation }: Props) {
     };
   }, [user?.foto_perfil_url, token]);
 
-  const notificationAction = useMemo(
-    () => getNotificationAction(notificacion),
-    [notificacion]
-  );
-
-  const notificationAccent = useMemo(
-    () => getNotificationAccent(notificacion),
-    [notificacion]
-  );
-
   const modules = useMemo<ModuleItem[]>(() => {
     return [
       {
@@ -362,17 +352,6 @@ export default function HomeScreen({ navigation }: Props) {
         enabled: Boolean(permisos.asistencia),
         group: 'trabajo',
         lockedReason: 'Asistencia no habilitada.',
-      },
-      {
-        key: 'calendario-laboral',
-        title: 'Calendario laboral',
-        subtitle: 'Agenda de asistencia, vacaciones e incapacidades.',
-        route: 'CalendarioLaboral',
-        accent: 'gold',
-        code: 'CL',
-        badge: 'Agenda',
-        enabled: true,
-        group: 'trabajo',
       },
       {
         key: 'vacaciones',
@@ -451,23 +430,23 @@ export default function HomeScreen({ navigation }: Props) {
         group: 'cuenta',
       },
       {
-        key: 'notificaciones',
-        title: 'Notificaciones',
-        subtitle: 'Avisos y seguimiento.',
-        route: 'Notificaciones',
-        accent: notificacion ? 'gold' : 'blue',
-        code: 'NT',
-        badge: notificacion ? 'Pendiente' : 'Avisos',
-        enabled: true,
-        group: 'cuenta',
-      },
-      {
         key: 'actividad',
         title: 'Actividad',
         subtitle: 'Bitácora personal reciente.',
         route: 'Actividad',
         accent: 'blue',
         code: 'AC',
+        enabled: true,
+        group: 'cuenta',
+      },
+      {
+        key: 'notificaciones',
+        title: 'Notificaciones',
+        subtitle: 'Avisos, recordatorios y seguimiento.',
+        route: 'Notificaciones',
+        accent: notificacion ? 'gold' : 'blue',
+        code: 'NT',
+        badge: notificacion ? 'Nuevo' : undefined,
         enabled: true,
         group: 'cuenta',
       },
@@ -495,7 +474,7 @@ export default function HomeScreen({ navigation }: Props) {
         lockedReason: 'Solo para administradores.',
       },
     ];
-  }, [permisos, hasCredential, notificacion, isAdmin]);
+  }, [permisos, hasCredential, isAdmin, notificacion]);
 
   const enabledModules = useMemo(
     () => modules.filter((item) => item.enabled),
@@ -530,14 +509,6 @@ export default function HomeScreen({ navigation }: Props) {
   const pendingItems = useMemo(() => {
     const items: { title: string; detail: string; accent: Accent }[] = [];
 
-    if (notificacion) {
-      items.push({
-        title: notificacion.titulo,
-        detail: notificacion.mensaje,
-        accent: notificationAccent,
-      });
-    }
-
     if (!hasProfilePhoto) {
       items.push({
         title: 'Foto pendiente',
@@ -563,13 +534,59 @@ export default function HomeScreen({ navigation }: Props) {
     }
 
     return items.slice(0, 3);
-  }, [
-    notificacion,
-    hasProfilePhoto,
-    hasCredential,
-    permisos.asistencia,
-    notificationAccent,
-  ]);
+  }, [hasProfilePhoto, hasCredential, permisos.asistencia]);
+
+  const firstName = String(user?.nombre || 'Usuario').split(' ')[0] || 'Usuario';
+
+  const pendingCount = pendingItems.length;
+  const primaryNextAction = permisos.asistencia
+    ? 'Registrar asistencia'
+    : 'Revisar expediente';
+  const primaryNextDetail = permisos.asistencia
+    ? 'Escanea el QR cuando inicies o cierres jornada.'
+    : 'Consulta documentos, credencial y soporte disponible.';
+  const homeStatus = pendingCount
+    ? `${pendingCount} pendiente${pendingCount === 1 ? '' : 's'} por revisar`
+    : 'Operación sin alertas críticas';
+
+  const focusItems = useMemo(
+    () => [
+      {
+        key: 'attendance',
+        eyebrow: 'Prioridad 01',
+        title: permisos.asistencia ? 'Registrar asistencia' : 'Asistencia no habilitada',
+        detail: permisos.asistencia
+          ? 'Entrada y salida por QR desde el flujo móvil.'
+          : 'El acceso depende de permisos administrativos.',
+        route: permisos.asistencia ? 'QrScan' : 'Asistencia',
+        accent: permisos.asistencia ? ('teal' as Accent) : ('muted' as Accent),
+        enabled: Boolean(permisos.asistencia),
+      },
+      {
+        key: 'documents',
+        eyebrow: 'Prioridad 02',
+        title: hasCredential ? 'Expediente digital listo' : 'Completar expediente',
+        detail: hasCredential
+          ? 'Credencial y documentos laborales disponibles.'
+          : 'Revisa credencial, contrato o archivos pendientes.',
+        route: 'Documentos',
+        accent: hasCredential ? ('blue' as Accent) : ('gold' as Accent),
+        enabled: true,
+      },
+      {
+        key: 'followup',
+        eyebrow: 'Prioridad 03',
+        title: pendingCount ? 'Dar seguimiento' : 'Mantener seguimiento',
+        detail: pendingCount
+          ? 'Atiende los puntos pendientes desde tu cuenta.'
+          : 'Consulta actividad o soporte cuando necesites contexto.',
+        route: pendingCount ? 'Perfil' : 'Actividad',
+        accent: pendingCount ? ('gold' as Accent) : ('teal' as Accent),
+        enabled: true,
+      },
+    ],
+    [hasCredential, pendingCount, permisos.asistencia]
+  );
 
   const mainActions = useMemo(() => {
     const actions: ModuleItem[] = [];
@@ -783,14 +800,13 @@ export default function HomeScreen({ navigation }: Props) {
 
       const { data } = await api.get('/notificaciones/mis-notificaciones');
       const list = Array.isArray(data?.notificaciones) ? data.notificaciones : [];
-      const unread = list.find((item: Notificacion) => !item.leida) || null;
-
-      if (unread?._id && unread._id === dismissedNotificationIdRef.current) {
-        setNotificacion(null);
-        return;
-      }
+      const unreadList = list
+        .filter((item: Notificacion) => !item.leida)
+        .slice(0, 3);
+      const unread = unreadList[0] || null;
 
       setNotificacion(unread);
+      setNotificationPreviewItems(unreadList);
 
       if (!unread) {
         lastNotificationShownRef.current = null;
@@ -825,45 +841,10 @@ export default function HomeScreen({ navigation }: Props) {
       lastNotificationTimeRef.current = now;
     } catch {
       setNotificacion(null);
+      setNotificationPreviewItems([]);
     } finally {
       loadingNotificationsRef.current = false;
     }
-  }
-
-  async function marcarLeida(id?: string) {
-    if (!id) return;
-
-    try {
-      await api.patch(`/notificaciones/${id}/leida`);
-    } catch {
-      // No bloquea navegación ni experiencia visual.
-    } finally {
-      setNotificacion(null);
-      lastNotificationShownRef.current = null;
-      lastNotificationTimeRef.current = 0;
-      dismissedNotificationIdRef.current = null;
-    }
-  }
-
-  function cerrarBannerNotificacion(id?: string) {
-    if (id) dismissedNotificationIdRef.current = id;
-    setNotificacion(null);
-  }
-
-  async function abrirNotificacionActual() {
-    const current = notificacion;
-    if (!current) return;
-
-    const action = getNotificationAction(current);
-
-    setNotificacion(null);
-    dismissedNotificationIdRef.current = null;
-
-    if (current._id) {
-      await marcarLeida(current._id);
-    }
-
-    navigation.navigate(action.route);
   }
 
   function goToModule(module: ModuleItem) {
@@ -879,6 +860,39 @@ export default function HomeScreen({ navigation }: Props) {
     setTimeout(() => {
       navigation.navigate(route);
     }, 180);
+  }
+
+  function navigateFromQuickMenu(route: string) {
+    closeFloatingPanels();
+    navigation.navigate(route);
+  }
+
+  function closeFloatingPanels() {
+    setQuickMenuOpen(false);
+    setNotificationPanelOpen(false);
+  }
+
+  async function openNotificationFromPanel(item: Notificacion) {
+    const action = getNotificationAction(item);
+
+    closeFloatingPanels();
+    setNotificationPreviewItems((current) =>
+      current.filter((notification) => notification._id !== item._id)
+    );
+
+    if (notificacion?._id === item._id) {
+      setNotificacion(null);
+    }
+
+    if (item._id) {
+      try {
+        await api.patch(`/notificaciones/${item._id}/leida`);
+      } catch {
+        // La navegación no depende de marcar como leída.
+      }
+    }
+
+    navigation.navigate(action.route);
   }
 
   function handleSheetAction(item: SheetAction) {
@@ -915,18 +929,18 @@ export default function HomeScreen({ navigation }: Props) {
     ]);
   }
 
+  function toggleModuleSection(section: ModuleSectionKey) {
+    setActiveModuleSection((current) => (current === section ? null : section));
+  }
+
   useEffect(() => {
     loadNotificaciones();
-    loadWearableDevice();
-
     const focusUnsubscribe = navigation.addListener('focus', () => {
       loadNotificaciones();
-      loadWearableDevice();
     });
 
     const interval = setInterval(() => {
       loadNotificaciones();
-      loadWearableDevice();
     }, NOTIFICATION_REPEAT_MS);
 
     return () => {
@@ -967,307 +981,188 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.dateText}>{getTodayLabel()}</Text>
           </View>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.accountButton,
-              pressed && styles.pressed,
-            ]}
-            onPress={() => setAccountSheetVisible(true)}
-          >
-            <View style={styles.accountAvatar}>
-              {photoLocalUri && !photoLoadFailed ? (
-                <Image
-                  source={{ uri: photoLocalUri }}
-                  style={styles.accountAvatarImage}
-                  onError={() => setPhotoLoadFailed(true)}
-                />
-              ) : (
-                <Text style={styles.accountAvatarText}>
-                  {user?.nombre?.[0] || 'S'}
-                </Text>
-              )}
-            </View>
-          </Pressable>
-        </View>
-
-        <View style={styles.hero}>
-          <Text style={styles.greeting}>{getGreeting()},</Text>
-          <Text style={styles.userTitle}>{user?.nombre || 'Usuario'}</Text>
-          <Text style={styles.heroSubtitle}>
-            Tu centro de control para asistencia, documentos, soporte y actividad laboral.
-          </Text>
-
-          <View style={styles.heroMetaRow}>
-            <View style={styles.heroMetaChip}>
-              <Text style={styles.heroMetaLabel}>Rol</Text>
-              <Text style={styles.heroMetaValue}>{user?.role || 'Usuario'}</Text>
-            </View>
-
-            <View style={styles.heroMetaChip}>
-              <Text style={styles.heroMetaLabel}>Módulos</Text>
-              <Text style={styles.heroMetaValue}>{enabledModules.length}</Text>
-            </View>
-
-            <View style={styles.heroMetaChip}>
-              <Text style={styles.heroMetaLabel}>Credencial</Text>
-              <Text style={styles.heroMetaValue}>
-                {hasCredential ? 'Lista' : 'Pendiente'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.wearableCard}>
-          <View style={styles.wearableHeader}>
-            <View>
-              <Text style={styles.sectionEyebrow}>Dispositivo inteligente</Text>
-              <Text style={styles.wearableTitle}>Mi reloj SMART RH</Text>
-            </View>
-
-            <View
-              style={[
-                styles.wearableStatusBadge,
-                wearableDevice ? styles.bgTeal : styles.bgGold,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.wearableStatusText,
-                  wearableDevice ? styles.textTeal : styles.textGold,
-                ]}
-              >
-                {wearableDevice ? 'Vinculado' : 'Sin vincular'}
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.wearableDescription}>
-            {wearableDevice
-              ? 'Tu reloj puede registrar entrada, salida y sincronizar datos con SMART RH.'
-              : 'Genera un código y escríbelo en tu reloj para vincularlo con tu cuenta.'}
-          </Text>
-
-          {wearableDevice ? (
-            <View style={styles.wearableInfoGrid}>
-              <InfoBox
-                label="Dispositivo"
-                value={wearableDevice.device_id}
-                styles={styles}
-              />
-
-              <InfoBox
-                label="Batería"
-                value={`${wearableDevice.bateria ?? 0}%`}
-                styles={styles}
-              />
-
-              <InfoBox
-                label="Estado"
-                value={wearableDevice.estado || 'ACTIVO'}
-                styles={styles}
-              />
-
-              <InfoBox
-                label="Conexión"
-                value={formatDateTime(wearableDevice.ultima_conexion)}
-                styles={styles}
-              />
-            </View>
-          ) : null}
-
-          {pairingCode && !wearableDevice ? (
-            <View style={styles.pairingCodeBox}>
-              <Text style={styles.pairingCodeLabel}>Código para reloj</Text>
-              <Text style={styles.pairingCodeValue}>{pairingCode.codigo}</Text>
-              <Text style={styles.pairingCodeHelp}>
-                Escríbelo en SMART RH Wear. Vence en {pairingCode.expiresInMinutes}{' '}
-                minutos.
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={styles.wearableActions}>
-            {!wearableDevice ? (
+          <View style={styles.topQuickActionsWrap}>
+            <View style={styles.topQuickActions}>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Abrir notificaciones"
                 style={({ pressed }) => [
-                  styles.wearablePrimaryButton,
+                  styles.topIconButton,
+                  notificacion && styles.topIconButtonActive,
                   pressed && styles.pressed,
                 ]}
-                onPress={generarCodigoWearable}
-                disabled={loadingWearable}
+                onPress={() => {
+                  setQuickMenuOpen(false);
+                  setNotificationPanelOpen((current) => !current);
+                }}
               >
-                <Text style={styles.wearablePrimaryButtonText}>
-                  {loadingWearable ? 'Procesando...' : 'Generar código'}
-                </Text>
+                <BellGlyph styles={styles} />
+                {notificacion ? <View style={styles.topNotificationDot} /> : null}
               </Pressable>
-            ) : null}
 
-            {wearableDevice ? (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
                 style={({ pressed }) => [
-                  styles.wearableDangerButton,
+                  styles.topIconButton,
+                  styles.topIconButtonSoft,
                   pressed && styles.pressed,
                 ]}
-                onPress={confirmarDesvincularWearable}
-                disabled={loadingWearable}
+                onPress={() => {
+                  closeFloatingPanels();
+                  toggleTheme();
+                }}
               >
-                <Text style={styles.wearableDangerButtonText}>Desvincular</Text>
+                <ThemeGlyph isDark={isDark} styles={styles} />
               </Pressable>
-            ) : null}
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.wearableGhostButton,
-                pressed && styles.pressed,
-              ]}
-              onPress={loadWearableDevice}
-              disabled={loadingWearable}
-            >
-              <Text style={styles.wearableGhostButtonText}>Actualizar</Text>
-            </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={quickMenuOpen ? 'Cerrar accesos rápidos' : 'Abrir accesos rápidos'}
+                style={({ pressed }) => [
+                  styles.topIconButton,
+                  quickMenuOpen && styles.topIconButtonActive,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => {
+                  setNotificationPanelOpen(false);
+                  setQuickMenuOpen((current) => !current);
+                }}
+              >
+                <QuickMenuGlyph styles={styles} />
+              </Pressable>
+            </View>
           </View>
         </View>
 
-        {notificacion && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.alertCard,
-              getAccentBorderStyle(notificationAccent, styles),
-              pressed && styles.pressed,
-            ]}
-            onPress={abrirNotificacionActual}
-          >
-            <View style={styles.alertTop}>
-              <View style={[styles.alertCode, getAccentBgStyle(notificationAccent, styles)]}>
-                <Text
-                  style={[
-                    styles.alertCodeText,
-                    getAccentTextStyle(notificationAccent, styles),
-                  ]}
-                >
-                  {notificationAction.code}
-                </Text>
+        <AnimatedEntrance delay={40}>
+          <View style={styles.hero}>
+            <View style={styles.heroRail} />
+            <View style={styles.heroGlow} />
+            <ConstellationAccent
+              isDark={isDark}
+              style={styles.constellationAccent}
+            />
+
+            <Text style={styles.greeting}>Inicio laboral</Text>
+            <Text style={styles.userTitle}>{getGreeting()}, {firstName}</Text>
+            <Text style={styles.heroSubtitle}>
+              Tu panel concentra jornada, expediente y seguimiento para que
+              avances con una lectura limpia.
+            </Text>
+
+            <View style={styles.heroInsightPanel}>
+              <View style={styles.heroInsightPrimary}>
+                <Text style={styles.heroInsightLabel}>Siguiente acción</Text>
+                <Text style={styles.heroInsightValue}>{primaryNextAction}</Text>
+                <Text style={styles.heroInsightDetail}>{primaryNextDetail}</Text>
               </View>
 
-              <View style={styles.alertBody}>
-                <View style={styles.alertTitleRow}>
-                  <Text style={styles.alertTitle} numberOfLines={1}>
-                    {notificacion.titulo}
-                  </Text>
+              <View style={styles.heroInsightDivider} />
 
-                  <View style={styles.newBadge}>
-                    <Text style={styles.newBadgeText}>Nuevo</Text>
-                  </View>
+              <View style={styles.heroInsightSecondary}>
+                <Text style={styles.heroInsightLabel}>Estado</Text>
+                <Text style={styles.heroInsightStatus}>{homeStatus}</Text>
+              </View>
+            </View>
+          </View>
+        </AnimatedEntrance>
+
+        <AnimatedEntrance delay={140}>
+          <View style={styles.mainActionsGrid}>
+            {mainActions.map((item) => (
+              <Pressable
+                key={item.key}
+                style={({ pressed }) => [
+                  styles.mainActionCard,
+                  getAccentBorderStyle(item.accent, styles),
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => goToModule(item)}
+              >
+                <View style={[styles.mainActionCode, getAccentBgStyle(item.accent, styles)]}>
+                  <Text
+                    style={[
+                      styles.mainActionCodeText,
+                      getAccentTextStyle(item.accent, styles),
+                    ]}
+                  >
+                    {item.code}
+                  </Text>
                 </View>
 
-                <Text style={styles.alertText} numberOfLines={2}>
-                  {notificacion.mensaje}
-                </Text>
+                <Text style={styles.mainActionTitle}>{item.title}</Text>
+                <Text style={styles.mainActionSubtitle}>{item.subtitle}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </AnimatedEntrance>
+
+        <AnimatedEntrance delay={180}>
+          <View style={styles.focusPanel}>
+            <View style={styles.focusHeader}>
+              <View>
+                <Text style={styles.sectionEyebrow}>Seguimiento</Text>
+                <Text style={styles.focusTitle}>Prioridad de hoy</Text>
+              </View>
+
+              <View style={styles.focusBadge}>
+                <Text style={styles.focusBadgeText}>Orden claro</Text>
               </View>
             </View>
 
-            <View style={styles.alertActions}>
-              <Pressable style={styles.alertPrimaryButton} onPress={abrirNotificacionActual}>
-                <Text style={styles.alertPrimaryButtonText}>
-                  {notificationAction.label}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.alertGhostButton}
-                onPress={(event) => {
-                  event.stopPropagation();
-                  navigation.navigate('Notificaciones');
-                }}
-              >
-                <Text style={styles.alertGhostButtonText}>Ver todas</Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.alertGhostButton}
-                onPress={(event) => {
-                  event.stopPropagation();
-                  cerrarBannerNotificacion(notificacion._id);
-                }}
-              >
-                <Text style={styles.alertGhostButtonText}>Cerrar</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        )}
-
-        <View style={styles.mainActionsGrid}>
-          {mainActions.map((item) => (
-            <Pressable
-              key={item.key}
-              style={({ pressed }) => [
-                styles.mainActionCard,
-                getAccentBorderStyle(item.accent, styles),
-                pressed && styles.pressed,
-              ]}
-              onPress={() => goToModule(item)}
-            >
-              <View style={[styles.mainActionCode, getAccentBgStyle(item.accent, styles)]}>
-                <Text
-                  style={[
-                    styles.mainActionCodeText,
-                    getAccentTextStyle(item.accent, styles),
+            <View style={styles.focusList}>
+              {focusItems.map((item, index) => (
+                <Pressable
+                  key={item.key}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Abrir ${item.title}`}
+                  style={({ pressed }) => [
+                    styles.focusRow,
+                    !item.enabled && styles.focusRowDisabled,
+                    pressed && item.enabled && styles.pressed,
                   ]}
+                  onPress={() => {
+                    if (item.enabled) navigation.navigate(item.route);
+                  }}
                 >
-                  {item.code}
-                </Text>
-              </View>
+                  <View
+                    style={[
+                      styles.focusIndex,
+                      getAccentBgStyle(item.accent, styles),
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.focusIndexText,
+                        getAccentTextStyle(item.accent, styles),
+                      ]}
+                    >
+                      {String(index + 1).padStart(2, '0')}
+                    </Text>
+                  </View>
 
-              <Text style={styles.mainActionTitle}>{item.title}</Text>
-              <Text style={styles.mainActionSubtitle}>{item.subtitle}</Text>
-            </Pressable>
-          ))}
-        </View>
+                  <View style={styles.focusCopy}>
+                    <Text
+                      style={[
+                        styles.focusEyebrow,
+                        getAccentTextStyle(item.accent, styles),
+                      ]}
+                    >
+                      {item.eyebrow}
+                    </Text>
+                    <Text style={styles.focusRowTitle}>{item.title}</Text>
+                    <Text style={styles.focusRowDetail}>{item.detail}</Text>
+                  </View>
 
-        <View style={styles.statusPanel}>
-          <View style={styles.sectionHeaderRow}>
-            <View>
-              <Text style={styles.sectionEyebrow}>Resumen</Text>
-              <Text style={styles.sectionTitle}>Estado de hoy</Text>
+                  <View style={styles.focusArrowBox}>
+                    <ModuleActionGlyph styles={styles} />
+                  </View>
+                </Pressable>
+              ))}
             </View>
-
-            <Text style={styles.sectionHint}>Actualizado</Text>
           </View>
-
-          <View style={styles.statusGrid}>
-            <StatusCard
-              label="Jornada"
-              value={permisos.asistencia ? 'Disponible' : 'Bloqueada'}
-              detail={permisos.asistencia ? 'Puedes registrar asistencia.' : 'Sin permiso activo.'}
-              accent={permisos.asistencia ? 'teal' : 'muted'}
-              styles={styles}
-            />
-
-            <StatusCard
-              label="Credencial"
-              value={hasCredential ? 'Lista' : 'Pendiente'}
-              detail={hasCredential ? 'Disponible en documentos.' : 'Aún no generada.'}
-              accent={hasCredential ? 'teal' : 'gold'}
-              styles={styles}
-            />
-
-            <StatusCard
-              label="Avisos"
-              value={String(pendingItems.length)}
-              detail={pendingItems.length ? 'Requieren revisión.' : 'Sin pendientes.'}
-              accent={pendingItems.length ? 'gold' : 'teal'}
-              styles={styles}
-            />
-
-            <StatusCard
-              label="Accesos"
-              value={String(enabledModules.length)}
-              detail="Módulos habilitados."
-              accent="blue"
-              styles={styles}
-            />
-          </View>
-        </View>
+        </AnimatedEntrance>
 
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
@@ -1301,34 +1196,46 @@ export default function HomeScreen({ navigation }: Props) {
 
         {adminModules.length > 0 && (
           <ModuleSection
+            sectionKey="admin"
             title="Administración"
             subtitle="Gestión general del sistema."
             modules={adminModules}
+            isOpen={activeModuleSection === 'admin'}
+            onToggle={toggleModuleSection}
             onPress={goToModule}
             styles={styles}
           />
         )}
 
         <ModuleSection
+          sectionKey="trabajo"
           title="Trabajo"
           subtitle="Operación diaria y solicitudes."
           modules={workModules}
+          isOpen={activeModuleSection === 'trabajo'}
+          onToggle={toggleModuleSection}
           onPress={goToModule}
           styles={styles}
         />
 
         <ModuleSection
+          sectionKey="documentos"
           title="Documentos"
           subtitle="Expediente laboral e identificación."
           modules={documentModules}
+          isOpen={activeModuleSection === 'documentos'}
+          onToggle={toggleModuleSection}
           onPress={goToModule}
           styles={styles}
         />
 
         <ModuleSection
+          sectionKey="cuenta"
           title="Cuenta"
           subtitle="Seguimiento, soporte y actividad."
           modules={accountModules}
+          isOpen={activeModuleSection === 'cuenta'}
+          onToggle={toggleModuleSection}
           onPress={goToModule}
           styles={styles}
         />
@@ -1353,12 +1260,126 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        <View style={styles.sessionSection}>
-          <Pressable style={styles.logoutButton} onPress={onLogout}>
-            <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
-          </Pressable>
-        </View>
       </ScrollView>
+
+      <Modal
+        visible={quickMenuOpen || notificationPanelOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeFloatingPanels}
+      >
+        <SafeAreaView style={styles.floatingOverlayRoot} pointerEvents="box-none">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar panel flotante"
+            style={styles.floatingDismissLayer}
+            onPress={closeFloatingPanels}
+          />
+
+          {quickMenuOpen ? (
+            <View style={styles.quickCascadeMenu} pointerEvents="box-none">
+              <QuickCascadeItem
+                label="Vacaciones"
+                detail="Solicitudes"
+                accent="teal"
+                styles={styles}
+                icon={<PlaneGlyph styles={styles} />}
+                onPress={() => navigateFromQuickMenu('Vacaciones')}
+              />
+              <QuickCascadeItem
+                label="Documentos"
+                detail="Expediente"
+                accent="blue"
+                styles={styles}
+                icon={<DocumentGlyph styles={styles} />}
+                itemStyle={styles.quickCascadeSecond}
+                onPress={() => navigateFromQuickMenu('Documentos')}
+              />
+              <QuickCascadeItem
+                label="Calendario"
+                detail="Laboral"
+                accent="gold"
+                styles={styles}
+                icon={<CalendarGlyph styles={styles} />}
+                itemStyle={styles.quickCascadeThird}
+                onPress={() => navigateFromQuickMenu('CalendarioLaboral')}
+              />
+            </View>
+          ) : null}
+
+          {notificationPanelOpen ? (
+            <View style={styles.notificationFloatMenu}>
+              <View pointerEvents="none" style={styles.notificationFloatBackdrop} />
+
+              <View style={styles.notificationFloatHeader}>
+                <View>
+                  <Text style={styles.notificationFloatEyebrow}>Centro de avisos</Text>
+                  <Text style={styles.notificationFloatTitle}>Notificaciones</Text>
+                </View>
+                <View style={styles.notificationFloatCount}>
+                  <Text style={styles.notificationFloatCountText}>
+                    {notificationPreviewItems.length}
+                  </Text>
+                </View>
+              </View>
+
+              {notificationPreviewItems.length ? (
+                <View style={styles.notificationFloatList}>
+                  {notificationPreviewItems.map((item) => {
+                    const action = getNotificationAction(item);
+
+                    return (
+                      <Pressable
+                        key={item._id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Abrir notificación ${item.titulo}`}
+                        style={({ pressed }) => [
+                          styles.notificationFloatItem,
+                          pressed && styles.pressed,
+                        ]}
+                        onPress={() => openNotificationFromPanel(item)}
+                      >
+                        <View style={styles.notificationFloatCode}>
+                          <Text style={styles.notificationFloatCodeText}>
+                            {action.code}
+                          </Text>
+                        </View>
+
+                        <View style={styles.notificationFloatCopy}>
+                          <Text
+                            style={styles.notificationFloatItemTitle}
+                            numberOfLines={1}
+                          >
+                            {item.titulo}
+                          </Text>
+                          <Text
+                            style={styles.notificationFloatItemText}
+                            numberOfLines={2}
+                          >
+                            {item.mensaje}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.notificationFloatEmpty}>
+                  <View style={styles.notificationFloatEmptyIcon}>
+                    <BellGlyph styles={styles} />
+                  </View>
+                  <Text style={styles.notificationFloatEmptyTitle}>
+                    Sin avisos nuevos
+                  </Text>
+                  <Text style={styles.notificationFloatEmptyText}>
+                    Las notificaciones importantes aparecerán aquí como acceso rápido.
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : null}
+        </SafeAreaView>
+      </Modal>
 
       <Modal
         visible={accountSheetVisible}
@@ -1543,59 +1564,317 @@ function InfoBox({
 }
 
 function ModuleSection({
+  sectionKey,
   title,
   subtitle,
   modules,
+  isOpen,
+  onToggle,
   onPress,
   styles,
 }: {
+  sectionKey: ModuleSectionKey;
   title: string;
   subtitle: string;
   modules: ModuleItem[];
+  isOpen: boolean;
+  onToggle: (section: ModuleSectionKey) => void;
   onPress: (item: ModuleItem) => void;
   styles: any;
 }) {
   if (!modules.length) return null;
 
+  const sectionAccent = getSectionAccent(sectionKey);
+  const fillWidth = `${Math.min(100, 34 + modules.length * 8)}%`;
+
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <View>
-          <Text style={styles.sectionTitle}>{title}</Text>
-          <Text style={styles.sectionSubtitle}>{subtitle}</Text>
-        </View>
-      </View>
-
-      <View style={styles.moduleGrid}>
-        {modules.map((item) => (
-          <Pressable
-            key={item.key}
-            style={({ pressed }) => [
-              styles.moduleCard,
-              getAccentBorderStyle(item.accent, styles),
-              pressed && styles.pressed,
-            ]}
-            onPress={() => onPress(item)}
-          >
-            <View style={styles.moduleCardTop}>
-              <View style={[styles.moduleCode, getAccentBgStyle(item.accent, styles)]}>
-                <Text style={[styles.moduleCodeText, getAccentTextStyle(item.accent, styles)]}>
-                  {item.code}
-                </Text>
-              </View>
-
-              {item.badge ? (
-                <View style={styles.moduleBadge}>
-                  <Text style={styles.moduleBadgeText}>{item.badge}</Text>
-                </View>
-              ) : null}
+      <View style={styles.moduleSectionFrame}>
+        <View style={styles.moduleSectionWash} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${isOpen ? 'Cerrar' : 'Abrir'} sección ${title}`}
+          style={({ pressed }) => [
+            styles.moduleSectionHeader,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => onToggle(sectionKey)}
+        >
+          <View style={styles.moduleSectionIdentity}>
+            <View style={styles.moduleSectionKickerRow}>
+              <View
+                style={[
+                  styles.moduleSectionDot,
+                  getAccentBgStyle(sectionAccent, styles),
+                ]}
+              />
+              <Text
+                style={[
+                  styles.moduleSectionKicker,
+                  getAccentTextStyle(sectionAccent, styles),
+                ]}
+              >
+                {getSectionLabel(sectionKey)}
+              </Text>
             </View>
 
-            <Text style={styles.moduleTitle}>{item.title}</Text>
-            <Text style={styles.moduleSubtitle}>{item.subtitle}</Text>
-          </Pressable>
-        ))}
+            <View style={styles.moduleSectionCopy}>
+              <Text style={styles.moduleSectionTitle}>{title}</Text>
+              <Text style={styles.moduleSectionSubtitle}>{subtitle}</Text>
+            </View>
+          </View>
+
+          <View style={styles.moduleSectionMeta}>
+            <View style={styles.moduleSectionCount}>
+              <Text style={styles.moduleSectionCountValue}>{modules.length}</Text>
+              <Text style={styles.moduleSectionCountLabel}>accesos</Text>
+            </View>
+
+            <ModuleSectionChevron isOpen={isOpen} styles={styles} />
+          </View>
+        </Pressable>
+
+        <View style={styles.moduleSectionTrack}>
+          <View
+            style={[
+              styles.moduleSectionTrackFill,
+              getAccentBgStyle(sectionAccent, styles),
+              { width: fillWidth },
+            ]}
+          />
+        </View>
+
+        {isOpen ? (
+          <View style={styles.moduleList}>
+            {modules.map((item, index) => (
+              <Pressable
+                key={item.key}
+                style={({ pressed }) => [
+                  styles.moduleRow,
+                  index === 0 && styles.moduleRowFirst,
+                  index === modules.length - 1 && styles.moduleRowLast,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => onPress(item)}
+              >
+                <View
+                  style={[
+                    styles.moduleLeadingRail,
+                    getAccentBgStyle(item.accent, styles),
+                  ]}
+                />
+
+                <View style={styles.moduleStep}>
+                  <Text
+                    style={[
+                      styles.moduleStepNumber,
+                      getAccentTextStyle(item.accent, styles),
+                    ]}
+                  >
+                    {String(index + 1).padStart(2, '0')}
+                  </Text>
+                  <View
+                    style={[
+                      styles.moduleStepLine,
+                      getAccentBgStyle(item.accent, styles),
+                    ]}
+                  />
+                </View>
+
+                <View style={styles.moduleTextBlock}>
+                  <View style={styles.moduleTitleRow}>
+                    <Text style={styles.moduleTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+
+                    {item.badge ? (
+                      <View style={styles.moduleBadge}>
+                        <Text style={styles.moduleBadgeText}>{item.badge}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  <Text style={styles.moduleSubtitle} numberOfLines={2}>
+                    {item.subtitle}
+                  </Text>
+                </View>
+
+                <View style={styles.moduleActionPill}>
+                  <ModuleActionGlyph styles={styles} />
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
       </View>
+    </View>
+  );
+}
+
+function getSectionAccent(sectionKey: ModuleSectionKey): Accent {
+  if (sectionKey === 'trabajo') return 'teal';
+  if (sectionKey === 'documentos') return 'blue';
+  if (sectionKey === 'cuenta') return 'gold';
+  return 'blue';
+}
+
+function getSectionLabel(sectionKey: ModuleSectionKey) {
+  if (sectionKey === 'trabajo') return 'Ruta de trabajo';
+  if (sectionKey === 'documentos') return 'Expediente digital';
+  if (sectionKey === 'cuenta') return 'Cuenta y soporte';
+  return 'Panel administrador';
+}
+
+function ModuleSectionChevron({
+  isOpen,
+  styles,
+}: {
+  isOpen: boolean;
+  styles: any;
+}) {
+  return (
+    <View
+      style={[
+        styles.moduleSectionToggle,
+        isOpen && styles.moduleSectionToggleOpen,
+      ]}
+    >
+      <View
+        style={[
+          styles.moduleChevron,
+          isOpen ? styles.moduleChevronOpen : styles.moduleChevronClosed,
+        ]}
+      >
+        <View style={[styles.moduleChevronStroke, styles.moduleChevronLeft]} />
+        <View style={[styles.moduleChevronStroke, styles.moduleChevronRight]} />
+      </View>
+    </View>
+  );
+}
+
+function ModuleActionGlyph({ styles }: { styles: any }) {
+  return (
+    <View style={styles.moduleActionGlyph}>
+      <View style={[styles.moduleActionStroke, styles.moduleActionStrokeTop]} />
+      <View style={[styles.moduleActionStroke, styles.moduleActionStrokeBottom]} />
+    </View>
+  );
+}
+
+function QuickCascadeItem({
+  label,
+  detail,
+  accent,
+  icon,
+  itemStyle,
+  styles,
+  onPress,
+}: {
+  label: string;
+  detail: string;
+  accent: Accent;
+  icon: React.ReactNode;
+  itemStyle?: any;
+  styles: any;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Abrir ${label}`}
+      style={({ pressed }) => [
+        styles.quickCascadeItem,
+        itemStyle,
+        pressed && styles.pressed,
+      ]}
+      onPress={onPress}
+    >
+      <View
+        style={[
+          styles.quickCascadeIcon,
+          getAccentBgStyle(accent, styles),
+          styles.floatingAccentNeutral,
+        ]}
+      >
+        {icon}
+      </View>
+
+      <View style={styles.quickCascadeTextBlock}>
+        <Text style={styles.quickCascadeLabel} numberOfLines={1}>
+          {label}
+        </Text>
+        <Text style={styles.quickCascadeDetail} numberOfLines={1}>
+          {detail}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function CalendarGlyph({ styles }: { styles: any }) {
+  return (
+    <View style={styles.calendarGlyph}>
+      <View style={styles.calendarBody}>
+        <View style={styles.calendarRingLeft} />
+        <View style={styles.calendarRingRight} />
+        <View style={styles.calendarRule} />
+        <View style={styles.calendarDayDot} />
+      </View>
+    </View>
+  );
+}
+
+function ThemeGlyph({ isDark, styles }: { isDark: boolean; styles: any }) {
+  return (
+    <View style={styles.themeDialGlyph}>
+      <View style={styles.themeDialRing}>
+        <View style={styles.themeDialHalf} />
+      </View>
+      <View style={[styles.themeDialMark, isDark && styles.themeDialMarkDark]} />
+    </View>
+  );
+}
+
+function QuickMenuGlyph({ styles }: { styles: any }) {
+  return (
+    <View style={styles.quickMenuGlyph}>
+      <View style={[styles.quickMenuTile, styles.quickMenuTileOne]} />
+      <View style={[styles.quickMenuTile, styles.quickMenuTileTwo]} />
+      <View style={[styles.quickMenuTile, styles.quickMenuTileThree]} />
+      <View style={[styles.quickMenuTile, styles.quickMenuTileFour]} />
+    </View>
+  );
+}
+
+function PlaneGlyph({ styles }: { styles: any }) {
+  return (
+    <View style={styles.planeGlyph}>
+      <View style={styles.planeBody} />
+      <View style={styles.planeWingTop} />
+      <View style={styles.planeWingBottom} />
+      <View style={styles.planeTail} />
+    </View>
+  );
+}
+
+function DocumentGlyph({ styles }: { styles: any }) {
+  return (
+    <View style={styles.documentGlyph}>
+      <View style={styles.documentFold} />
+      <View style={styles.documentLineOne} />
+      <View style={styles.documentLineTwo} />
+    </View>
+  );
+}
+
+function BellGlyph({ styles }: { styles: any }) {
+  return (
+    <View style={styles.bellGlyph}>
+      <View style={styles.bellStem} />
+      <View style={styles.bellDome} />
+      <View style={styles.bellBase} />
+      <View style={styles.bellClapper} />
     </View>
   );
 }
@@ -1648,30 +1927,50 @@ function getAccentTextStyle(accent: Accent, styles: any) {
 }
 
 function getColors(isDark: boolean) {
+  const colors = getSmartRhColors(isDark);
+
   return {
-    background: isDark ? '#07111F' : '#F4F7FB',
-    surface: isDark ? '#0F1B2D' : '#FFFFFF',
-    surfaceSoft: isDark ? '#111F33' : '#F9FBFD',
-    surfaceMuted: isDark ? '#17263D' : '#EEF4FA',
-    primary: isDark ? '#38BDF8' : '#0A57A4',
-    primarySoft: isDark ? 'rgba(56,189,248,0.14)' : 'rgba(10,87,164,0.10)',
-    teal: isDark ? '#2DD4BF' : '#22B8B0',
-    tealSoft: isDark ? 'rgba(45,212,191,0.14)' : 'rgba(34,184,176,0.12)',
-    gold: isDark ? '#FACC15' : '#B45309',
-    goldSoft: isDark ? 'rgba(250,204,21,0.13)' : 'rgba(245,158,11,0.14)',
-    danger: '#D64545',
-    dangerSoft: 'rgba(214,69,69,0.12)',
-    muted: isDark ? '#64748B' : '#94A3B8',
-    mutedSoft: isDark ? 'rgba(100,116,139,0.14)' : 'rgba(148,163,184,0.14)',
-    text: isDark ? '#F8FAFC' : '#0F172A',
-    textMuted: isDark ? '#9FB0C4' : '#5B6B81',
-    border: isDark ? '#26364D' : '#D9E1EC',
-    overlay: isDark ? 'rgba(2,6,23,0.72)' : 'rgba(15,23,42,0.32)',
+    background: colors.background,
+    surface: colors.card,
+    surfaceSoft: colors.cardSoft,
+    surfaceMuted: colors.cardMuted,
+    primary: colors.primary,
+    primaryText: colors.primary,
+    heroSurface: colors.card,
+    heroSurfaceSoft: colors.cardSoft,
+    heroText: colors.text,
+    heroTextMuted: colors.textMuted,
+    heroBorder: colors.border,
+    heroAccent: colors.primary,
+    actionFill: colors.primary,
+    actionText: '#FFFFFF',
+    primarySoft: colors.primarySoft,
+    teal: colors.success,
+    tealSoft: colors.successSoft,
+    gold: colors.warning,
+    goldSoft: colors.warningSoft,
+    danger: colors.danger,
+    dangerSoft: colors.dangerSoft,
+    muted: colors.textSubtle,
+    mutedSoft: colors.linkSoft,
+    text: colors.text,
+    textMuted: colors.textMuted,
+    border: colors.border,
+    overlay: isDark ? 'rgba(0,0,0,0.76)' : 'rgba(41,40,39,0.32)',
   };
 }
 
 function getStyles(isDark: boolean) {
   const C = getColors(isDark);
+  const shadow = getSmartRhShadow(isDark);
+  const floatingSurface = isDark
+    ? 'rgba(15, 23, 42, 0.94)'
+    : 'rgba(255, 255, 255, 0.92)';
+  const floatingBorder = isDark
+    ? 'rgba(125, 178, 216, 0.20)'
+    : 'rgba(10, 87, 164, 0.14)';
+  const floatingIcon = isDark ? '#A8D4F2' : C.primary;
+  const floatingIconSoft = isDark ? '#7BCFC4' : C.teal;
 
   return StyleSheet.create({
     safe: {
@@ -1679,8 +1978,9 @@ function getStyles(isDark: boolean) {
       backgroundColor: C.background,
     },
     container: {
-      padding: 20,
-      paddingBottom: 46,
+      paddingHorizontal: 18,
+      paddingTop: 14,
+      paddingBottom: 132,
       backgroundColor: C.background,
       overflow: 'hidden',
     },
@@ -1692,7 +1992,7 @@ function getStyles(isDark: boolean) {
       height: 280,
       borderRadius: 140,
       backgroundColor: C.primary,
-      opacity: isDark ? 0.15 : 0.08,
+      opacity: isDark ? 0.12 : 0.08,
     },
     bgCircleTwo: {
       position: 'absolute',
@@ -1702,18 +2002,656 @@ function getStyles(isDark: boolean) {
       height: 190,
       borderRadius: 95,
       backgroundColor: C.teal,
-      opacity: isDark ? 0.14 : 0.09,
+      opacity: isDark ? 0.2 : 0.09,
     },
     topHeader: {
       zIndex: 2,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 18,
+      marginBottom: 14,
+      paddingHorizontal: 2,
       gap: 12,
     },
+    topQuickActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    topQuickActionsWrap: {
+      position: 'relative',
+      zIndex: 50,
+      alignItems: 'flex-end',
+    },
+    topIconButton: {
+      position: 'relative',
+      width: 44,
+      height: 44,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+      shadowColor: isDark ? '#000000' : '#0A57A4',
+      shadowOpacity: isDark ? 0.18 : 0.07,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 2,
+    },
+    topIconButtonActive: {
+      backgroundColor: isDark ? 'rgba(44,83,112,0.36)' : C.primarySoft,
+      borderColor: isDark ? 'rgba(124,196,236,0.30)' : 'rgba(10,87,164,0.18)',
+    },
+    topIconButtonSoft: {
+      backgroundColor: isDark ? 'rgba(17,24,39,0.82)' : 'rgba(12,66,67,0.06)',
+    },
+    topNotificationDot: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      width: 9,
+      height: 9,
+      borderRadius: 999,
+      backgroundColor: C.danger,
+      borderWidth: 2,
+      borderColor: C.surface,
+    },
+    floatingOverlayRoot: {
+      flex: 1,
+      backgroundColor: 'transparent',
+    },
+    floatingDismissLayer: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      backgroundColor: 'transparent',
+    },
+    quickCascadeMenu: {
+      position: 'absolute',
+      top: 58,
+      right: 18,
+      width: 196,
+      zIndex: 80,
+      elevation: 12,
+      alignItems: 'flex-end',
+      gap: 8,
+    },
+    quickCascadeItem: {
+      width: 178,
+      minHeight: 50,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: 19,
+      backgroundColor: floatingSurface,
+      borderWidth: 1,
+      borderColor: floatingBorder,
+      shadowColor: isDark ? '#000000' : '#0A57A4',
+      shadowOpacity: isDark ? 0.20 : 0.10,
+      shadowRadius: isDark ? 15 : 18,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 6,
+    },
+    quickCascadeSecond: {
+      marginRight: 14,
+    },
+    quickCascadeThird: {
+      marginRight: 28,
+    },
+    quickCascadeIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    floatingAccentNeutral: isDark
+      ? {
+          backgroundColor: 'rgba(148,163,184,0.12)',
+        }
+      : {},
+    quickCascadeTextBlock: {
+      flex: 1,
+      minWidth: 0,
+    },
+    quickCascadeLabel: {
+      color: C.text,
+      fontSize: 13,
+      lineHeight: 16,
+      fontWeight: '900',
+    },
+    quickCascadeDetail: {
+      marginTop: 2,
+      color: C.textMuted,
+      fontSize: 10,
+      lineHeight: 13,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    notificationFloatMenu: {
+      position: 'absolute',
+      top: 58,
+      right: 18,
+      width: 286,
+      padding: 0,
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      shadowOpacity: 0,
+      elevation: 0,
+      overflow: 'visible',
+    },
+    notificationFloatBackdrop: {
+      position: 'absolute',
+      top: -9,
+      right: -9,
+      bottom: -9,
+      left: -9,
+      borderRadius: 30,
+      backgroundColor: isDark
+        ? 'rgba(6, 14, 25, 0.58)'
+        : 'rgba(238, 246, 252, 0.66)',
+      borderWidth: 1,
+      borderColor: isDark
+        ? 'rgba(124,196,236,0.12)'
+        : 'rgba(10,87,164,0.08)',
+      shadowColor: isDark ? '#000000' : '#0A57A4',
+      shadowOpacity: isDark ? 0.22 : 0.08,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 3,
+    },
+    notificationFloatHeader: {
+      zIndex: 2,
+      alignSelf: 'flex-end',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingVertical: 9,
+      paddingHorizontal: 11,
+      marginBottom: 8,
+      borderRadius: 20,
+      backgroundColor: floatingSurface,
+      borderWidth: 1,
+      borderColor: floatingBorder,
+      shadowColor: isDark ? '#000000' : '#0A57A4',
+      shadowOpacity: isDark ? 0.18 : 0.10,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 6,
+    },
+    notificationFloatEyebrow: {
+      color: C.textMuted,
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    notificationFloatTitle: {
+      marginTop: 2,
+      color: C.text,
+      fontSize: 17,
+      lineHeight: 21,
+      fontWeight: '900',
+    },
+    notificationFloatCount: {
+      width: 30,
+      height: 30,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : C.primarySoft,
+      borderWidth: 1,
+      borderColor: floatingBorder,
+    },
+    notificationFloatCountText: {
+      color: isDark ? '#D8E2EE' : C.primaryText,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    notificationFloatList: {
+      zIndex: 2,
+      gap: 8,
+    },
+    notificationFloatItem: {
+      minHeight: 62,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      padding: 10,
+      borderRadius: 20,
+      backgroundColor: floatingSurface,
+      borderWidth: 1,
+      borderColor: floatingBorder,
+      shadowColor: isDark ? '#000000' : '#0A57A4',
+      shadowOpacity: isDark ? 0.16 : 0.08,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 7 },
+      elevation: 4,
+    },
+    notificationFloatCode: {
+      width: 34,
+      height: 34,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : C.tealSoft,
+    },
+    notificationFloatCodeText: {
+      color: isDark ? '#CBD5E1' : C.teal,
+      fontSize: 11,
+      fontWeight: '900',
+    },
+    notificationFloatCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    notificationFloatItemTitle: {
+      color: C.text,
+      fontSize: 13,
+      lineHeight: 16,
+      fontWeight: '900',
+    },
+    notificationFloatItemText: {
+      marginTop: 3,
+      color: C.textMuted,
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: '700',
+    },
+    notificationFloatEmpty: {
+      zIndex: 2,
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      paddingVertical: 18,
+      borderRadius: 22,
+      backgroundColor: floatingSurface,
+      borderWidth: 1,
+      borderColor: floatingBorder,
+      shadowColor: isDark ? '#000000' : '#0A57A4',
+      shadowOpacity: isDark ? 0.16 : 0.08,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 7 },
+      elevation: 4,
+    },
+    notificationFloatEmptyIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : C.primarySoft,
+      borderWidth: 1,
+      borderColor: floatingBorder,
+      marginBottom: 10,
+    },
+    notificationFloatEmptyTitle: {
+      color: C.text,
+      fontSize: 14,
+      lineHeight: 18,
+      fontWeight: '900',
+      textAlign: 'center',
+    },
+    notificationFloatEmptyText: {
+      marginTop: 5,
+      color: C.textMuted,
+      fontSize: 11,
+      lineHeight: 16,
+      fontWeight: '700',
+      textAlign: 'center',
+    },
+    calendarGlyph: {
+      width: 22,
+      height: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    calendarBody: {
+      position: 'relative',
+      width: 19,
+      height: 18,
+      borderRadius: 5,
+      borderWidth: 1.8,
+      borderColor: floatingIcon,
+      marginTop: 2,
+    },
+    calendarRingLeft: {
+      position: 'absolute',
+      top: -5,
+      left: 4,
+      width: 3,
+      height: 8,
+      borderRadius: 999,
+      backgroundColor: floatingIcon,
+    },
+    calendarRingRight: {
+      position: 'absolute',
+      top: -5,
+      right: 4,
+      width: 3,
+      height: 8,
+      borderRadius: 999,
+      backgroundColor: floatingIcon,
+    },
+    calendarRule: {
+      position: 'absolute',
+      top: 6,
+      left: 3,
+      right: 3,
+      height: 1.8,
+      borderRadius: 999,
+      backgroundColor: floatingIcon,
+      opacity: 0.78,
+    },
+    calendarDayDot: {
+      position: 'absolute',
+      right: 4,
+      bottom: 4,
+      width: 4,
+      height: 4,
+      borderRadius: 999,
+      backgroundColor: floatingIconSoft,
+    },
+    bellGlyph: {
+      position: 'relative',
+      width: 22,
+      height: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bellStem: {
+      position: 'absolute',
+      top: 2,
+      width: 5,
+      height: 3,
+      borderRadius: 999,
+      backgroundColor: floatingIcon,
+    },
+    bellDome: {
+      position: 'absolute',
+      top: 5,
+      width: 15,
+      height: 13,
+      borderTopLeftRadius: 9,
+      borderTopRightRadius: 9,
+      borderWidth: 1.8,
+      borderColor: floatingIcon,
+      borderBottomWidth: 0,
+    },
+    bellBase: {
+      position: 'absolute',
+      bottom: 5,
+      width: 19,
+      height: 2,
+      borderRadius: 999,
+      backgroundColor: floatingIcon,
+    },
+    bellClapper: {
+      position: 'absolute',
+      bottom: 1,
+      width: 5,
+      height: 5,
+      borderRadius: 999,
+      backgroundColor: floatingIconSoft,
+    },
+    themeDialGlyph: {
+      position: 'relative',
+      width: 24,
+      height: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    themeDialRing: {
+      position: 'relative',
+      width: 18,
+      height: 18,
+      borderRadius: 999,
+      borderWidth: 1.8,
+      borderColor: floatingIcon,
+      backgroundColor: isDark ? 'rgba(15,23,42,0.92)' : '#FFFFFF',
+      overflow: 'hidden',
+    },
+    themeDialHalf: {
+      position: 'absolute',
+      top: -1,
+      right: -1,
+      bottom: -1,
+      width: 10,
+      backgroundColor: isDark ? 'rgba(124,196,236,0.62)' : C.primary,
+    },
+    themeDialMark: {
+      position: 'absolute',
+      top: 2,
+      right: 2,
+      width: 4,
+      height: 4,
+      borderRadius: 999,
+      backgroundColor: C.teal,
+    },
+    themeDialMarkDark: {
+      backgroundColor: '#CBD5E1',
+    },
+    themeSwitchGlyph: {
+      width: 25,
+      height: 18,
+      justifyContent: 'center',
+    },
+    themeSwitchTrack: {
+      width: 25,
+      height: 16,
+      borderRadius: 999,
+      borderWidth: 1.7,
+      borderColor: C.primary,
+      backgroundColor: isDark
+        ? 'rgba(255,255,255,0.05)'
+        : 'rgba(10,87,164,0.06)',
+      padding: 1.5,
+    },
+    themeSwitchKnob: {
+      width: 11,
+      height: 11,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.primary,
+    },
+    themeSwitchKnobDark: {
+      transform: [{ translateX: 9 }],
+      backgroundColor: C.teal,
+    },
+    themeTinySun: {
+      width: 5,
+      height: 5,
+      borderRadius: 999,
+      backgroundColor: '#FFFFFF',
+    },
+    themeTinyMoon: {
+      width: 6,
+      height: 6,
+      borderRadius: 999,
+      borderWidth: 1.5,
+      borderColor: '#03111A',
+      borderTopColor: 'transparent',
+      borderRightColor: 'transparent',
+      transform: [{ rotate: '-30deg' }],
+    },
+    sunGlyph: {
+      position: 'relative',
+      width: 22,
+      height: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sunCore: {
+      width: 10,
+      height: 10,
+      borderRadius: 999,
+      borderWidth: 1.8,
+      borderColor: C.primary,
+    },
+    sunRay: {
+      position: 'absolute',
+      width: 2,
+      height: 5,
+      borderRadius: 999,
+      backgroundColor: C.primary,
+    },
+    sunRayTop: {
+      top: 0,
+    },
+    sunRayRight: {
+      right: 0,
+      transform: [{ rotate: '90deg' }],
+    },
+    sunRayBottom: {
+      bottom: 0,
+    },
+    sunRayLeft: {
+      left: 0,
+      transform: [{ rotate: '90deg' }],
+    },
+    moonGlyph: {
+      position: 'relative',
+      width: 18,
+      height: 18,
+      borderRadius: 999,
+      borderWidth: 2,
+      borderColor: C.primary,
+    },
+    moonCutout: {
+      position: 'absolute',
+      top: -2,
+      right: -3,
+      width: 13,
+      height: 18,
+      borderRadius: 999,
+      backgroundColor: isDark
+        ? 'rgba(12,66,67,0.18)'
+        : 'rgba(12,66,67,0.06)',
+    },
+    quickMenuGlyph: {
+      position: 'relative',
+      width: 22,
+      height: 22,
+    },
+    quickMenuTile: {
+      position: 'absolute',
+      width: 8,
+      height: 8,
+      borderRadius: 3,
+      backgroundColor: floatingIcon,
+    },
+    quickMenuTileOne: {
+      top: 2,
+      left: 2,
+    },
+    quickMenuTileTwo: {
+      top: 2,
+      right: 2,
+      backgroundColor: floatingIconSoft,
+    },
+    quickMenuTileThree: {
+      bottom: 2,
+      left: 2,
+      backgroundColor: floatingIconSoft,
+    },
+    quickMenuTileFour: {
+      bottom: 2,
+      right: 2,
+    },
+    planeGlyph: {
+      position: 'relative',
+      width: 22,
+      height: 22,
+      transform: [{ rotate: '-18deg' }],
+    },
+    planeBody: {
+      position: 'absolute',
+      top: 9,
+      left: 2,
+      width: 18,
+      height: 3,
+      borderRadius: 999,
+      backgroundColor: floatingIcon,
+    },
+    planeWingTop: {
+      position: 'absolute',
+      top: 4,
+      left: 8,
+      width: 9,
+      height: 3,
+      borderRadius: 999,
+      backgroundColor: floatingIcon,
+      transform: [{ rotate: '38deg' }],
+    },
+    planeWingBottom: {
+      position: 'absolute',
+      bottom: 5,
+      left: 8,
+      width: 9,
+      height: 3,
+      borderRadius: 999,
+      backgroundColor: floatingIconSoft,
+      transform: [{ rotate: '-38deg' }],
+    },
+    planeTail: {
+      position: 'absolute',
+      top: 6,
+      left: 1,
+      width: 7,
+      height: 3,
+      borderRadius: 999,
+      backgroundColor: floatingIcon,
+      transform: [{ rotate: '-42deg' }],
+    },
+    documentGlyph: {
+      position: 'relative',
+      width: 18,
+      height: 21,
+      borderRadius: 5,
+      borderWidth: 1.8,
+      borderColor: floatingIcon,
+      backgroundColor: 'transparent',
+    },
+    documentFold: {
+      position: 'absolute',
+      top: -1,
+      right: -1,
+      width: 7,
+      height: 7,
+      borderLeftWidth: 1.8,
+      borderBottomWidth: 1.8,
+      borderColor: floatingIcon,
+      borderBottomLeftRadius: 3,
+    },
+    documentLineOne: {
+      position: 'absolute',
+      left: 4,
+      right: 4,
+      top: 10,
+      height: 2,
+      borderRadius: 999,
+      backgroundColor: floatingIconSoft,
+    },
+    documentLineTwo: {
+      position: 'absolute',
+      left: 4,
+      right: 7,
+      top: 15,
+      height: 2,
+      borderRadius: 999,
+      backgroundColor: floatingIcon,
+      opacity: 0.82,
+    },
     appName: {
-      color: C.primary,
+      color: C.primaryText,
       fontSize: 22,
       fontWeight: '900',
       letterSpacing: 0.8,
@@ -1725,65 +2663,144 @@ function getStyles(isDark: boolean) {
       fontWeight: '800',
       textTransform: 'capitalize',
     },
-    accountButton: {
-      width: 48,
-      height: 48,
-      borderRadius: 18,
-      backgroundColor: C.surface,
-      borderWidth: 1,
-      borderColor: C.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-      elevation: 3,
-    },
-    accountAvatar: {
-      width: 38,
-      height: 38,
-      borderRadius: 15,
-      overflow: 'hidden',
-      backgroundColor: C.primarySoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    accountAvatarImage: {
-      width: '100%',
-      height: '100%',
-      resizeMode: 'cover',
-    },
-    accountAvatarText: {
-      color: C.primary,
-      fontSize: 16,
-      fontWeight: '900',
-    },
     hero: {
       zIndex: 2,
+      position: 'relative',
+      overflow: 'hidden',
       padding: 22,
-      borderRadius: 32,
-      backgroundColor: C.surface,
+      paddingTop: 24,
+      borderRadius: 34,
+      backgroundColor: C.heroSurface,
+      borderWidth: 1,
+      borderColor: C.heroBorder,
+      marginBottom: 14,
+      ...shadow,
+    },
+    heroRail: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 7,
+      backgroundColor: C.heroAccent,
+    },
+    heroGlow: {
+      position: 'absolute',
+      right: -42,
+      top: -28,
+      width: 142,
+      height: 142,
+      borderRadius: 71,
+      backgroundColor: isDark ? 'rgba(12,66,67,0.16)' : 'rgba(12,66,67,0.16)',
+    },
+    constellationAccent: {
+      top: 0,
+      right: -18,
+      opacity: isDark ? 0.38 : 0.38,
+    },
+    heroTopLine: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 18,
+    },
+    heroSystemPill: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: C.primarySoft,
       borderWidth: 1,
       borderColor: C.border,
-      elevation: 5,
-      marginBottom: 16,
     },
-    greeting: {
-      color: C.textMuted,
-      fontSize: 14,
-      fontWeight: '800',
+    heroSystemPillText: {
+      color: C.heroAccent,
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
     },
-    userTitle: {
-      marginTop: 3,
-      color: C.text,
-      fontSize: 32,
-      lineHeight: 38,
+    heroSignal: {
+      color: C.heroTextMuted,
+      fontSize: 11,
       fontWeight: '900',
       textTransform: 'uppercase',
     },
+    greeting: {
+      color: C.primaryText,
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    },
+    userTitle: {
+      marginTop: 7,
+      color: C.heroText,
+      fontSize: 28,
+      lineHeight: 34,
+      fontWeight: '900',
+    },
     heroSubtitle: {
-      marginTop: 8,
-      color: C.textMuted,
+      marginTop: 10,
+      color: C.heroTextMuted,
       fontSize: 14,
-      lineHeight: 21,
+      lineHeight: 22,
       fontWeight: '700',
+    },
+    heroInsightPanel: {
+      marginTop: 18,
+      padding: 14,
+      borderRadius: 24,
+      backgroundColor: C.heroSurfaceSoft,
+      borderWidth: 1,
+      borderColor: C.border,
+      flexDirection: 'row',
+      alignItems: 'stretch',
+      gap: 14,
+    },
+    heroInsightPrimary: {
+      flex: 1.35,
+      minWidth: 0,
+    },
+    heroInsightSecondary: {
+      flex: 0.9,
+      minWidth: 0,
+      justifyContent: 'center',
+    },
+    heroInsightDivider: {
+      width: 1,
+      alignSelf: 'stretch',
+      borderRadius: 999,
+      backgroundColor: C.border,
+    },
+    heroInsightLabel: {
+      color: C.heroTextMuted,
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 0.9,
+      textTransform: 'uppercase',
+    },
+    heroInsightValue: {
+      marginTop: 6,
+      color: C.heroText,
+      fontSize: 17,
+      lineHeight: 21,
+      fontWeight: '900',
+    },
+    heroInsightDetail: {
+      marginTop: 4,
+      color: C.heroTextMuted,
+      fontSize: 11,
+      lineHeight: 16,
+      fontWeight: '700',
+    },
+    heroInsightStatus: {
+      marginTop: 6,
+      color: C.heroTextMuted,
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '900',
     },
     heroMetaRow: {
       marginTop: 16,
@@ -1795,32 +2812,44 @@ function getStyles(isDark: boolean) {
       paddingHorizontal: 12,
       paddingVertical: 9,
       borderRadius: 16,
-      backgroundColor: C.surfaceSoft,
+      backgroundColor: C.heroSurfaceSoft,
       borderWidth: 1,
       borderColor: C.border,
     },
     heroMetaLabel: {
-      color: C.textMuted,
+      color: C.heroTextMuted,
       fontSize: 10,
       fontWeight: '900',
       textTransform: 'uppercase',
     },
     heroMetaValue: {
       marginTop: 2,
-      color: C.primary,
+      color: C.heroAccent,
       fontSize: 13,
       fontWeight: '900',
       textTransform: 'capitalize',
     },
     wearableCard: {
       zIndex: 2,
+      position: 'relative',
+      overflow: 'hidden',
       padding: 18,
+      paddingTop: 20,
       borderRadius: 28,
       backgroundColor: C.surface,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(45,212,191,0.28)' : 'rgba(34,184,176,0.20)',
-      elevation: 4,
+      borderColor: isDark ? 'rgba(94,234,212,0.36)' : 'rgba(34,184,176,0.20)',
       marginBottom: 16,
+      ...shadow,
+    },
+    wearableTopRule: {
+      position: 'absolute',
+      left: 18,
+      right: 18,
+      top: 0,
+      height: 3,
+      borderRadius: 999,
+      backgroundColor: C.teal,
     },
     wearableHeader: {
       flexDirection: 'row',
@@ -1874,7 +2903,7 @@ function getStyles(isDark: boolean) {
       letterSpacing: 1,
     },
     pairingCodeValue: {
-      color: C.primary,
+      color: C.primaryText,
       fontSize: 38,
       fontWeight: '900',
       letterSpacing: 7,
@@ -1934,7 +2963,7 @@ function getStyles(isDark: boolean) {
       justifyContent: 'center',
     },
     wearableGhostButtonText: {
-      color: C.primary,
+      color: C.primaryText,
       fontSize: 13,
       fontWeight: '900',
     },
@@ -1946,7 +2975,7 @@ function getStyles(isDark: boolean) {
       borderWidth: 1,
       borderColor: C.border,
       marginBottom: 16,
-      elevation: 3,
+      ...shadow,
     },
     alertTop: {
       flexDirection: 'row',
@@ -2008,10 +3037,10 @@ function getStyles(isDark: boolean) {
       paddingHorizontal: 13,
       paddingVertical: 9,
       borderRadius: 14,
-      backgroundColor: C.primary,
+      backgroundColor: C.actionFill,
     },
     alertPrimaryButtonText: {
-      color: '#FFFFFF',
+      color: C.actionText,
       fontSize: 12,
       fontWeight: '900',
     },
@@ -2039,7 +3068,7 @@ function getStyles(isDark: boolean) {
       backgroundColor: C.surface,
       borderWidth: 1,
       borderColor: C.border,
-      elevation: 3,
+      ...shadow,
     },
     mainActionCode: {
       width: 46,
@@ -2066,15 +3095,315 @@ function getStyles(isDark: boolean) {
       lineHeight: 18,
       fontWeight: '700',
     },
-    statusPanel: {
+    focusPanel: {
       zIndex: 2,
-      padding: 18,
+      position: 'relative',
+      overflow: 'hidden',
+      padding: 16,
       borderRadius: 28,
       backgroundColor: C.surface,
       borderWidth: 1,
       borderColor: C.border,
-      elevation: 3,
       marginBottom: 16,
+      ...shadow,
+    },
+    focusHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 12,
+      marginBottom: 13,
+    },
+    focusTitle: {
+      color: C.text,
+      fontSize: 20,
+      lineHeight: 24,
+      fontWeight: '900',
+    },
+    focusBadge: {
+      paddingHorizontal: 11,
+      paddingVertical: 7,
+      borderRadius: 999,
+      backgroundColor: C.primarySoft,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(56,189,248,0.30)' : 'rgba(10,87,164,0.16)',
+    },
+    focusBadgeText: {
+      color: C.primaryText,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+    },
+    focusList: {
+      gap: 10,
+    },
+    focusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 13,
+      paddingHorizontal: 13,
+      borderRadius: 22,
+      backgroundColor: C.surfaceSoft,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    focusRowDisabled: {
+      opacity: 0.72,
+    },
+    focusIndex: {
+      width: 42,
+      height: 42,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    focusIndexText: {
+      fontSize: 12,
+      fontWeight: '900',
+    },
+    focusCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    focusEyebrow: {
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    focusRowTitle: {
+      marginTop: 3,
+      color: C.text,
+      fontSize: 15,
+      lineHeight: 19,
+      fontWeight: '900',
+    },
+    focusRowDetail: {
+      marginTop: 4,
+      color: C.textMuted,
+      fontSize: 12,
+      lineHeight: 17,
+      fontWeight: '700',
+    },
+    focusArrowBox: {
+      width: 34,
+      height: 34,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    statusPanel: {
+      zIndex: 2,
+      position: 'relative',
+      overflow: 'hidden',
+      padding: 15,
+      borderRadius: 26,
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+      marginBottom: 16,
+      ...shadow,
+    },
+    statusHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 12,
+      marginBottom: 12,
+    },
+    statusLivePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: C.surfaceSoft,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    statusLiveDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+      backgroundColor: C.teal,
+    },
+    statusLiveText: {
+      color: C.textMuted,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+    },
+    statusCompactCard: {
+      position: 'relative',
+      overflow: 'hidden',
+      padding: 14,
+      borderRadius: 22,
+      backgroundColor: C.surfaceSoft,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    statusCompactRail: {
+      position: 'absolute',
+      left: 0,
+      top: 14,
+      bottom: 14,
+      width: 5,
+      borderTopRightRadius: 999,
+      borderBottomRightRadius: 999,
+      backgroundColor: C.teal,
+    },
+    statusCompactIntro: {
+      paddingLeft: 7,
+      marginBottom: 12,
+    },
+    statusCompactTitle: {
+      color: C.text,
+      fontSize: 15,
+      lineHeight: 19,
+      fontWeight: '900',
+    },
+    statusCompactText: {
+      marginTop: 3,
+      color: C.textMuted,
+      fontSize: 12,
+      lineHeight: 17,
+      fontWeight: '700',
+    },
+    statusCompactGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 9,
+    },
+    statusCompactItem: {
+      width: '48.5%',
+      minHeight: 86,
+      padding: 11,
+      borderRadius: 18,
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    statusCompactDot: {
+      width: 26,
+      height: 5,
+      borderRadius: 999,
+      marginBottom: 8,
+    },
+    statusCompactLabel: {
+      color: C.textMuted,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+    },
+    statusCompactValue: {
+      marginTop: 3,
+      fontSize: 15,
+      lineHeight: 19,
+      fontWeight: '900',
+    },
+    statusCompactDetail: {
+      marginTop: 2,
+      color: C.textMuted,
+      fontSize: 10,
+      lineHeight: 14,
+      fontWeight: '700',
+    },
+    statusCommandCard: {
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'stretch',
+    },
+    statusCommandMain: {
+      flex: 1.1,
+      minHeight: 172,
+      padding: 17,
+      borderRadius: 26,
+      backgroundColor: C.primarySoft,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(94,234,212,0.22)' : 'rgba(10,87,164,0.14)',
+      justifyContent: 'space-between',
+    },
+    statusCommandLabel: {
+      color: C.primaryText,
+      fontSize: 11,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.9,
+    },
+    statusCommandValue: {
+      color: C.text,
+      fontSize: 52,
+      lineHeight: 56,
+      fontWeight: '900',
+      letterSpacing: -1,
+      marginTop: 8,
+    },
+    statusCommandText: {
+      color: C.textMuted,
+      fontSize: 12,
+      lineHeight: 18,
+      fontWeight: '700',
+      marginTop: 3,
+    },
+    statusCommandTrack: {
+      height: 8,
+      borderRadius: 999,
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+      overflow: 'hidden',
+      marginTop: 13,
+    },
+    statusCommandTrackFill: {
+      height: '100%',
+      borderRadius: 999,
+      backgroundColor: C.primary,
+    },
+    statusMetricRail: {
+      flex: 0.9,
+      gap: 10,
+    },
+    statusBottomStrip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginTop: 12,
+      padding: 13,
+      borderRadius: 22,
+      backgroundColor: C.surfaceSoft,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    statusStripItem: {
+      flex: 1,
+      minWidth: 0,
+    },
+    statusStripDivider: {
+      width: 1,
+      alignSelf: 'stretch',
+      backgroundColor: C.border,
+    },
+    statusStripLabel: {
+      color: C.textMuted,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    statusStripValue: {
+      color: C.text,
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: '900',
+      marginTop: 3,
     },
     section: {
       zIndex: 2,
@@ -2113,42 +3442,39 @@ function getStyles(isDark: boolean) {
       fontWeight: '900',
       textTransform: 'uppercase',
     },
-    statusGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
-    },
     statusCard: {
-      width: '48%',
-      minHeight: 126,
-      padding: 14,
+      flex: 1,
+      minHeight: 81,
+      padding: 12,
       borderRadius: 22,
       backgroundColor: C.surfaceSoft,
       borderWidth: 1,
       borderColor: C.border,
     },
     statusAccentDot: {
-      width: 36,
-      height: 6,
+      width: 28,
+      height: 5,
       borderRadius: 999,
-      marginBottom: 10,
+      marginBottom: 8,
     },
     statusValue: {
       color: C.text,
-      fontSize: 19,
+      fontSize: 16,
       fontWeight: '900',
     },
     statusLabel: {
       marginTop: 2,
       color: C.textMuted,
-      fontSize: 12,
+      fontSize: 10,
       fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
     },
     statusDetail: {
-      marginTop: 6,
+      marginTop: 4,
       color: C.textMuted,
-      fontSize: 11,
-      lineHeight: 16,
+      fontSize: 10,
+      lineHeight: 14,
       fontWeight: '700',
     },
     pendingList: {
@@ -2201,44 +3527,223 @@ function getStyles(isDark: boolean) {
       lineHeight: 18,
       fontWeight: '700',
     },
-    moduleGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
-    },
-    moduleCard: {
-      width: '48%',
-      minHeight: 154,
-      padding: 15,
-      borderRadius: 24,
+    moduleSectionFrame: {
+      position: 'relative',
+      overflow: 'hidden',
+      padding: 17,
+      borderRadius: 30,
       backgroundColor: C.surface,
       borderWidth: 1,
       borderColor: C.border,
-      elevation: 3,
+      ...shadow,
     },
-    moduleCardTop: {
+    moduleSectionWash: {
+      position: 'absolute',
+      top: -62,
+      right: -58,
+      width: 150,
+      height: 150,
+      borderRadius: 75,
+      backgroundColor: C.primarySoft,
+      opacity: isDark ? 0.36 : 0.72,
+    },
+    moduleSectionHeader: {
+      zIndex: 1,
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 13,
-      gap: 8,
+      alignItems: 'flex-start',
+      gap: 12,
     },
-    moduleCode: {
-      width: 43,
-      height: 43,
-      borderRadius: 16,
+    moduleSectionIdentity: {
+      flex: 1,
+      minWidth: 0,
+    },
+    moduleSectionKickerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 7,
+    },
+    moduleSectionDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 999,
+    },
+    moduleSectionKicker: {
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.9,
+    },
+    moduleSectionCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    moduleSectionTitle: {
+      color: C.text,
+      fontSize: 24,
+      lineHeight: 28,
+      fontWeight: '900',
+      letterSpacing: -0.1,
+    },
+    moduleSectionSubtitle: {
+      marginTop: 4,
+      color: C.textMuted,
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '700',
+    },
+    moduleSectionMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+    },
+    moduleSectionCount: {
+      minWidth: 68,
+      paddingHorizontal: 11,
+      paddingVertical: 8,
+      borderRadius: 19,
+      backgroundColor: C.surfaceSoft,
+      borderWidth: 1,
+      borderColor: C.border,
+      alignItems: 'center',
+    },
+    moduleSectionCountValue: {
+      color: C.primary,
+      fontSize: 18,
+      fontWeight: '900',
+    },
+    moduleSectionCountLabel: {
+      color: C.textMuted,
+      fontSize: 9,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    moduleSectionToggle: {
+      width: 42,
+      height: 42,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.surfaceSoft,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    moduleSectionToggleOpen: {
+      backgroundColor: C.primarySoft,
+      borderColor: isDark ? 'rgba(94,234,212,0.24)' : 'rgba(10,87,164,0.14)',
+    },
+    moduleChevron: {
+      width: 18,
+      height: 18,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    moduleCodeText: {
-      fontSize: 12,
+    moduleChevronOpen: {
+      transform: [{ rotate: '0deg' }],
+    },
+    moduleChevronClosed: {
+      transform: [{ rotate: '-90deg' }],
+    },
+    moduleChevronStroke: {
+      position: 'absolute',
+      top: 8,
+      width: 10,
+      height: 3,
+      borderRadius: 999,
+      backgroundColor: C.primary,
+    },
+    moduleChevronLeft: {
+      left: 2,
+      transform: [{ rotate: '45deg' }],
+    },
+    moduleChevronRight: {
+      right: 2,
+      transform: [{ rotate: '-45deg' }],
+    },
+    moduleSectionTrack: {
+      zIndex: 1,
+      height: 6,
+      borderRadius: 999,
+      backgroundColor: C.surfaceSoft,
+      borderWidth: 1,
+      borderColor: C.border,
+      overflow: 'hidden',
+      marginTop: 14,
+    },
+    moduleSectionTrackFill: {
+      height: '100%',
+      borderRadius: 999,
+      opacity: isDark ? 0.9 : 1,
+    },
+    moduleList: {
+      zIndex: 1,
+      marginTop: 14,
+      gap: 10,
+    },
+    moduleRow: {
+      position: 'relative',
+      minHeight: 86,
+      paddingVertical: 13,
+      paddingLeft: 14,
+      paddingRight: 10,
+      backgroundColor: C.surfaceSoft,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: C.border,
+      overflow: 'hidden',
+    },
+    moduleRowFirst: {
+      paddingTop: 15,
+    },
+    moduleRowLast: {
+      paddingBottom: 15,
+    },
+    moduleLeadingRail: {
+      position: 'absolute',
+      left: 0,
+      top: 12,
+      bottom: 12,
+      width: 5,
+      borderTopRightRadius: 999,
+      borderBottomRightRadius: 999,
+    },
+    moduleStep: {
+      width: 38,
+      alignItems: 'center',
+      gap: 6,
+    },
+    moduleStepNumber: {
+      fontSize: 18,
       fontWeight: '900',
+      letterSpacing: -0.2,
+    },
+    moduleStepLine: {
+      width: 30,
+      height: 5,
+      borderRadius: 999,
+      opacity: 0.72,
+    },
+    moduleTextBlock: {
+      flex: 1,
+      minWidth: 0,
+    },
+    moduleTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      minWidth: 0,
     },
     moduleBadge: {
+      flexShrink: 0,
       paddingHorizontal: 8,
       paddingVertical: 5,
       borderRadius: 999,
-      backgroundColor: C.surfaceSoft,
+      backgroundColor: C.surface,
       borderWidth: 1,
       borderColor: C.border,
     },
@@ -2247,11 +3752,13 @@ function getStyles(isDark: boolean) {
       fontSize: 9,
       fontWeight: '900',
       textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     moduleTitle: {
+      flexShrink: 1,
       color: C.text,
-      fontSize: 16,
-      lineHeight: 20,
+      fontSize: 17,
+      lineHeight: 21,
       fontWeight: '900',
     },
     moduleSubtitle: {
@@ -2260,6 +3767,46 @@ function getStyles(isDark: boolean) {
       lineHeight: 18,
       marginTop: 6,
       fontWeight: '700',
+    },
+    moduleActionPill: {
+      width: 44,
+      height: 44,
+      borderRadius: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.primarySoft,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(94,234,212,0.24)' : 'rgba(10,87,164,0.14)',
+    },
+    moduleActionPillText: {
+      color: C.primary,
+      fontSize: 11,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+    },
+    moduleActionGlyph: {
+      width: 12,
+      height: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    moduleActionStroke: {
+      position: 'absolute',
+      right: 1,
+      width: 8,
+      height: 2,
+      borderRadius: 999,
+      backgroundColor: C.primary,
+    },
+    moduleActionStrokeTop: {
+      top: 3,
+      transform: [{ rotate: '45deg' }],
+    },
+    moduleActionStrokeBottom: {
+      bottom: 3,
+      transform: [{ rotate: '-45deg' }],
     },
     lockedList: {
       gap: 10,
@@ -2283,24 +3830,6 @@ function getStyles(isDark: boolean) {
       fontSize: 12,
       lineHeight: 18,
       marginTop: 4,
-    },
-    sessionSection: {
-      zIndex: 2,
-      marginTop: 4,
-    },
-    logoutButton: {
-      minHeight: 54,
-      borderRadius: 18,
-      backgroundColor: C.dangerSoft,
-      borderWidth: 1,
-      borderColor: C.danger,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    logoutButtonText: {
-      color: C.danger,
-      fontSize: 14,
-      fontWeight: '900',
     },
     sheetOverlay: {
       flex: 1,
@@ -2361,7 +3890,7 @@ function getStyles(isDark: boolean) {
       justifyContent: 'center',
     },
     sheetCloseText: {
-      color: C.primary,
+      color: C.primaryText,
       fontSize: 24,
       fontWeight: '900',
       marginTop: -2,
@@ -2394,7 +3923,7 @@ function getStyles(isDark: boolean) {
       resizeMode: 'cover',
     },
     sheetAvatarText: {
-      color: C.primary,
+      color: C.primaryText,
       fontSize: 32,
       fontWeight: '900',
     },
@@ -2595,7 +4124,7 @@ function getStyles(isDark: boolean) {
       backgroundColor: C.goldSoft,
     },
     textBlue: {
-      color: C.primary,
+      color: C.primaryText,
     },
     textTeal: {
       color: C.teal,

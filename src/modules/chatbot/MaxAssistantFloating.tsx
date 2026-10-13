@@ -19,6 +19,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import ConstellationAccent from '../../components/ConstellationAccent';
+import { getSmartRhColors } from '../../design/smartRhTheme';
 
 const MAX_MOBILE_HISTORY_KEY = 'smart-rh:max:mobile-history:v1';
 const MAX_MOBILE_SESSIONS_KEY = 'smart-rh:max:mobile-sessions:v1';
@@ -157,22 +159,24 @@ function snapPositionToSide(
 }
 
 function getColors(isDark: boolean) {
+  const colors = getSmartRhColors(isDark);
+
   return {
-    backdrop: 'rgba(3, 7, 18, 0.58)',
-    background: isDark ? '#07111F' : '#F4F7FB',
-    card: isDark ? '#101C2E' : '#FFFFFF',
-    cardSoft: isDark ? '#16263D' : '#F7FAFC',
-    primary: isDark ? '#38BDF8' : '#0A57A4',
-    primaryStrong: isDark ? '#0EA5E9' : '#084B8F',
-    primarySoft: isDark ? 'rgba(56, 189, 248, 0.14)' : 'rgba(10, 87, 164, 0.10)',
-    teal: isDark ? '#2DD4BF' : '#1AAEA6',
-    tealSoft: isDark ? 'rgba(45, 212, 191, 0.14)' : 'rgba(26, 174, 166, 0.12)',
-    danger: isDark ? '#FDA4AF' : '#B42318',
-    dangerBg: isDark ? 'rgba(253, 164, 175, 0.12)' : 'rgba(180, 35, 24, 0.08)',
-    text: isDark ? '#F8FAFC' : '#0F172A',
-    muted: isDark ? '#B6C5D8' : '#5B6B81',
-    border: isDark ? '#2A3B56' : '#D9E1EC',
-    white: '#FFFFFF',
+    backdrop: isDark ? 'rgba(0, 0, 0, 0.68)' : 'rgba(41, 40, 39, 0.42)',
+    background: colors.background,
+    card: colors.card,
+    cardSoft: colors.cardSoft,
+    primary: colors.maxAccent,
+    primaryStrong: colors.link,
+    primarySoft: colors.maxAccentSoft,
+    teal: colors.success,
+    tealSoft: colors.successSoft,
+    danger: colors.danger,
+    dangerBg: colors.dangerSoft,
+    text: colors.text,
+    muted: colors.textMuted,
+    border: colors.border,
+    white: colors.white,
   };
 }
 
@@ -703,7 +707,15 @@ export default function MaxAssistantFloating() {
               style={styles.panel}
               onPress={(event) => event.stopPropagation()}
             >
+              <View pointerEvents="none" style={styles.panelBackdrop} />
+              <View pointerEvents="none" style={styles.panelGlowOne} />
+              <View pointerEvents="none" style={styles.panelGlowTwo} />
+
               <View style={styles.header}>
+                <ConstellationAccent
+                  isDark={isDark}
+                  style={styles.headerConstellation}
+                />
                 <View style={styles.avatar}>
                   <Image source={MAX_ICON} style={styles.avatarImage} />
                 </View>
@@ -849,7 +861,7 @@ export default function MaxAssistantFloating() {
                               style={styles.historyDeleteButton}
                               onPress={() => deleteChatSession(session.id)}
                             >
-                              <Text style={styles.historyDeleteText}>⌫</Text>
+                              <Text style={styles.historyDeleteText}>Borrar</Text>
                             </Pressable>
                           </View>
                         ))
@@ -1004,6 +1016,21 @@ export default function MaxAssistantFloating() {
 
 function getStyles(isDark: boolean) {
   const COLORS = getColors(isDark);
+  const glassSurface = isDark
+    ? 'rgba(15, 23, 42, 0.88)'
+    : 'rgba(255, 255, 255, 0.82)';
+  const glassSurfaceStrong = isDark
+    ? 'rgba(15, 23, 42, 0.96)'
+    : 'rgba(255, 255, 255, 0.94)';
+  const glassSurfaceSoft = isDark
+    ? 'rgba(30, 41, 59, 0.76)'
+    : 'rgba(247, 250, 252, 0.80)';
+  const glassBorder = isDark
+    ? 'rgba(124, 196, 236, 0.18)'
+    : 'rgba(10, 87, 164, 0.13)';
+  const assistantViewport = isDark
+    ? 'rgba(7, 17, 31, 0.54)'
+    : 'rgba(239, 246, 252, 0.62)';
 
   return StyleSheet.create({
     floatingButton: {
@@ -1050,37 +1077,86 @@ function getStyles(isDark: boolean) {
       backgroundColor: COLORS.backdrop,
       paddingHorizontal: 10,
       paddingTop: 38,
-      paddingBottom: 10,
+      paddingBottom: 14,
     },
     panel: {
-      height: '86%',
-      maxHeight: '90%',
-      borderRadius: 28,
+      height: '78%',
+      maxHeight: '84%',
+      borderRadius: 34,
       overflow: 'hidden',
-      backgroundColor: COLORS.card,
+      backgroundColor: isDark
+        ? 'rgba(6, 14, 25, 0.72)'
+        : 'rgba(238, 246, 252, 0.74)',
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: glassBorder,
       position: 'relative',
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 18 },
-      shadowOpacity: 0.25,
-      shadowRadius: 24,
+      shadowOpacity: isDark ? 0.34 : 0.18,
+      shadowRadius: 28,
       elevation: 18,
     },
+    panelBackdrop: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      bottom: 8,
+      left: 8,
+      borderRadius: 28,
+      backgroundColor: isDark
+        ? 'rgba(15, 23, 42, 0.46)'
+        : 'rgba(255, 255, 255, 0.48)',
+      borderWidth: 1,
+      borderColor: isDark
+        ? 'rgba(124,196,236,0.10)'
+        : 'rgba(10,87,164,0.08)',
+    },
+    panelGlowOne: {
+      position: 'absolute',
+      top: -54,
+      right: -38,
+      width: 168,
+      height: 168,
+      borderRadius: 84,
+      backgroundColor: COLORS.primary,
+      opacity: isDark ? 0.18 : 0.11,
+    },
+    panelGlowTwo: {
+      position: 'absolute',
+      left: -52,
+      bottom: 82,
+      width: 146,
+      height: 146,
+      borderRadius: 73,
+      backgroundColor: COLORS.teal,
+      opacity: isDark ? 0.12 : 0.08,
+    },
     header: {
+      zIndex: 2,
+      position: 'relative',
+      overflow: 'hidden',
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 11,
-      minHeight: 92,
-      paddingHorizontal: 16,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? 'rgba(120, 197, 255, 0.18)' : 'rgba(10, 87, 164, 0.14)',
-      backgroundColor: COLORS.primaryStrong,
+      gap: 10,
+      minHeight: 80,
+      marginHorizontal: 12,
+      marginTop: 12,
+      marginBottom: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: glassBorder,
+      backgroundColor: glassSurface,
+    },
+    headerConstellation: {
+      top: -20,
+      right: 16,
+      opacity: isDark ? 0.28 : 0.18,
     },
     avatar: {
-      width: 48,
-      height: 48,
+      width: 44,
+      height: 44,
       borderRadius: 999,
       alignItems: 'center',
       justifyContent: 'center',
@@ -1092,8 +1168,8 @@ function getStyles(isDark: boolean) {
       elevation: 8,
     },
     avatarImage: {
-      width: 39,
-      height: 39,
+      width: 36,
+      height: 36,
       borderRadius: 999,
       resizeMode: 'contain',
     },
@@ -1101,19 +1177,19 @@ function getStyles(isDark: boolean) {
       flex: 1,
     },
     kicker: {
-      color: 'rgba(237, 250, 255, 0.82)',
+      color: COLORS.primary,
       fontSize: 10,
       fontWeight: '900',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
     },
     title: {
-      color: COLORS.white,
+      color: COLORS.text,
       fontSize: 20,
       fontWeight: '900',
     },
     subtitle: {
-      color: 'rgba(237, 250, 255, 0.78)',
+      color: COLORS.muted,
       fontSize: 11,
       fontWeight: '700',
     },
@@ -1123,42 +1199,49 @@ function getStyles(isDark: boolean) {
       borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.14)',
+      backgroundColor: glassSurfaceSoft,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.22)',
+      borderColor: glassBorder,
     },
     closeText: {
-      color: COLORS.white,
+      color: COLORS.text,
       fontSize: 24,
       fontWeight: '700',
       lineHeight: 26,
     },
     messages: {
+      zIndex: 2,
       flex: 1,
       minHeight: 0,
-      backgroundColor: COLORS.background,
+      marginHorizontal: 14,
+      marginBottom: 10,
+      borderRadius: 26,
+      overflow: 'hidden',
+      backgroundColor: assistantViewport,
+      borderWidth: 1,
+      borderColor: glassBorder,
     },
     messagesContent: {
-      gap: 8,
-      padding: 12,
-      paddingBottom: 16,
+      gap: 10,
+      padding: 14,
+      paddingBottom: 18,
     },
     messageBubble: {
       maxWidth: '88%',
-      borderRadius: 18,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      borderRadius: 22,
+      paddingHorizontal: 13,
+      paddingVertical: 11,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: glassBorder,
     },
     userBubble: {
       alignSelf: 'flex-end',
-      backgroundColor: COLORS.primary,
-      borderColor: COLORS.primary,
+      backgroundColor: COLORS.primaryStrong,
+      borderColor: COLORS.primaryStrong,
     },
     assistantBubble: {
       alignSelf: 'flex-start',
-      backgroundColor: COLORS.card,
+      backgroundColor: glassSurfaceStrong,
     },
     messageText: {
       color: COLORS.text,
@@ -1192,9 +1275,9 @@ function getStyles(isDark: boolean) {
       borderRadius: 999,
       paddingHorizontal: 12,
       paddingVertical: 8,
-      backgroundColor: COLORS.primarySoft,
+      backgroundColor: glassSurfaceSoft,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: glassBorder,
     },
     actionButtonText: {
       color: COLORS.primary,
@@ -1207,13 +1290,17 @@ function getStyles(isDark: boolean) {
       fontWeight: '800',
     },
     composer: {
+      zIndex: 3,
       gap: 12,
       paddingHorizontal: 14,
       paddingTop: 10,
       paddingBottom: 14,
-      borderTopWidth: 1,
-      borderTopColor: COLORS.border,
-      backgroundColor: COLORS.card,
+      marginHorizontal: 14,
+      marginBottom: 12,
+      borderRadius: 26,
+      borderWidth: 1,
+      borderColor: glassBorder,
+      backgroundColor: glassSurfaceStrong,
     },
     errorCard: {
       marginHorizontal: 12,
@@ -1234,14 +1321,14 @@ function getStyles(isDark: boolean) {
       position: 'absolute',
       left: 14,
       right: 14,
-      top: 106,
-      bottom: 118,
+      top: 100,
+      bottom: 126,
       zIndex: 24,
       overflow: 'hidden',
       borderRadius: 22,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(122, 202, 255, 0.26)' : 'rgba(10, 87, 164, 0.18)',
-      backgroundColor: isDark ? 'rgba(7, 17, 31, 0.98)' : 'rgba(247, 250, 252, 0.98)',
+      borderColor: glassBorder,
+      backgroundColor: glassSurfaceStrong,
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 18 },
       shadowOpacity: 0.28,
@@ -1255,8 +1342,8 @@ function getStyles(isDark: boolean) {
       gap: 8,
       paddingHorizontal: 12,
       borderBottomWidth: 1,
-      borderBottomColor: COLORS.border,
-      backgroundColor: COLORS.card,
+      borderBottomColor: glassBorder,
+      backgroundColor: glassSurface,
     },
     historyBackButton: {
       minWidth: 70,
@@ -1265,9 +1352,9 @@ function getStyles(isDark: boolean) {
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 10,
-      backgroundColor: COLORS.cardSoft,
+      backgroundColor: glassSurfaceSoft,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: glassBorder,
     },
     historyBackText: {
       color: COLORS.text,
@@ -1308,8 +1395,8 @@ function getStyles(isDark: boolean) {
       padding: 12,
       borderRadius: 18,
       borderWidth: 1,
-      borderColor: COLORS.border,
-      backgroundColor: COLORS.card,
+      borderColor: glassBorder,
+      backgroundColor: glassSurface,
     },
     historySelector: {
       flex: 1,
@@ -1334,29 +1421,29 @@ function getStyles(isDark: boolean) {
       fontWeight: '800',
     },
     historyDeleteButton: {
-      width: 34,
+      minWidth: 58,
       height: 34,
       borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: COLORS.cardSoft,
+      paddingHorizontal: 10,
+      backgroundColor: glassSurfaceSoft,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: glassBorder,
     },
     historyDeleteText: {
       color: COLORS.danger,
-      fontSize: 18,
+      fontSize: 11,
       fontWeight: '900',
-      lineHeight: 20,
     },
     historyClearButton: {
       minHeight: 40,
       borderRadius: 999,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: COLORS.cardSoft,
+      backgroundColor: glassSurfaceSoft,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: glassBorder,
     },
     historyClearText: {
       color: COLORS.text,
@@ -1368,10 +1455,10 @@ function getStyles(isDark: boolean) {
       gap: 5,
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: glassBorder,
       paddingHorizontal: 12,
       paddingVertical: 10,
-      backgroundColor: COLORS.card,
+      backgroundColor: glassSurface,
     },
     historyMessageUser: {
       alignSelf: 'flex-end',
@@ -1394,8 +1481,8 @@ function getStyles(isDark: boolean) {
       borderRadius: 18,
       borderWidth: 1,
       borderStyle: 'dashed',
-      borderColor: COLORS.border,
-      backgroundColor: COLORS.card,
+      borderColor: glassBorder,
+      backgroundColor: glassSurface,
       padding: 16,
     },
     historyEmptyText: {
@@ -1420,17 +1507,17 @@ function getStyles(isDark: boolean) {
       gap: 8,
     },
     suggestionButton: {
-      minHeight: 40,
+      minHeight: 38,
       minWidth: '47%',
       flexGrow: 1,
       flexShrink: 1,
       justifyContent: 'center',
-      borderRadius: 14,
+      borderRadius: 19,
       paddingHorizontal: 12,
       paddingVertical: 9,
-      backgroundColor: COLORS.cardSoft,
+      backgroundColor: glassSurfaceSoft,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: glassBorder,
     },
     suggestionText: {
       color: COLORS.text,
@@ -1453,14 +1540,14 @@ function getStyles(isDark: boolean) {
       gap: 8,
     },
     toolButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: COLORS.cardSoft,
+      backgroundColor: glassSurfaceSoft,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: glassBorder,
     },
     toolButtonActive: {
       backgroundColor: COLORS.primarySoft,
@@ -1479,10 +1566,10 @@ function getStyles(isDark: boolean) {
       color: COLORS.text,
       fontSize: 13,
       textAlignVertical: 'top',
-      backgroundColor: COLORS.cardSoft,
+      backgroundColor: glassSurfaceSoft,
       borderWidth: 1,
-      borderColor: COLORS.border,
-      borderRadius: 10,
+      borderColor: glassBorder,
+      borderRadius: 20,
       paddingHorizontal: 12,
       paddingVertical: 9,
     },
@@ -1506,12 +1593,14 @@ function getStyles(isDark: boolean) {
       lineHeight: 22,
     },
     ticketButton: {
-      borderRadius: 16,
+      borderRadius: 20,
       paddingVertical: 10,
       alignItems: 'center',
-      backgroundColor: COLORS.tealSoft,
+      backgroundColor: isDark
+        ? 'rgba(100, 201, 188, 0.14)'
+        : COLORS.tealSoft,
       borderWidth: 1,
-      borderColor: COLORS.border,
+      borderColor: glassBorder,
     },
     ticketButtonText: {
       color: COLORS.teal,
