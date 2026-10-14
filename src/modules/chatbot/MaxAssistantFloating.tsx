@@ -4,12 +4,14 @@ import {
   Alert,
   Dimensions,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   PanResponder,
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -227,6 +229,8 @@ export default function MaxAssistantFloating() {
   const movedRef = useRef(false);
 
   const [open, setOpen] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [screenSize, setScreenSize] = useState(Dimensions.get('window'));
   const [buttonPosition, setButtonPosition] = useState<FloatingPosition>(
     () => clampPosition(getDefaultPosition())
@@ -488,6 +492,29 @@ export default function MaxAssistantFloating() {
   }, []);
 
   useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardVisible(true);
+      setKeyboardHeight(event.endCoordinates.height);
+
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      });
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
 
     const timer = setTimeout(() => {
@@ -496,6 +523,25 @@ export default function MaxAssistantFloating() {
 
     return () => clearTimeout(timer);
   }, [messages, loading, open]);
+
+  const closeMax = () => {
+    Keyboard.dismiss();
+    setKeyboardVisible(false);
+    setKeyboardHeight(0);
+    setHistoryOpen(false);
+    setSelectedHistoryId(null);
+    setOpen(false);
+  };
+
+  const safeTopInset = Platform.OS === 'ios'
+    ? screenSize.height >= 844
+      ? 59
+      : 44
+    : Math.max(StatusBar.currentHeight || 24, 24);
+  const keyboardPanelHeight = Math.max(
+    340,
+    screenSize.height - keyboardHeight - safeTopInset - 18
+  );
 
   async function sendMessage(nextMessage?: string) {
     const cleanMessage = String(nextMessage || message).trim();
@@ -610,7 +656,7 @@ export default function MaxAssistantFloating() {
       return;
     }
 
-    setOpen(false);
+    closeMax();
     navigation.navigate(route);
   }
 
@@ -696,32 +742,70 @@ export default function MaxAssistantFloating() {
         visible={open}
         transparent
         animationType="fade"
-        onRequestClose={() => setOpen(false)}
+        onRequestClose={closeMax}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalRoot}
         >
-          <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+          <Pressable
+            style={[
+              styles.backdrop,
+              keyboardVisible && styles.backdropKeyboardOpen,
+            ]}
+            onPress={closeMax}
+          >
             <Pressable
-              style={styles.panel}
+              style={[
+                styles.panel,
+                keyboardVisible && styles.panelKeyboardOpen,
+                keyboardVisible && {
+                  height: keyboardPanelHeight,
+                  maxHeight: keyboardPanelHeight,
+                },
+              ]}
               onPress={(event) => event.stopPropagation()}
             >
               <View pointerEvents="none" style={styles.panelBackdrop} />
               <View pointerEvents="none" style={styles.panelGlowOne} />
               <View pointerEvents="none" style={styles.panelGlowTwo} />
 
-              <View style={styles.header}>
+              <View
+                style={[
+                  styles.header,
+                  keyboardVisible && styles.headerKeyboardOpen,
+                ]}
+              >
                 <ConstellationAccent
                   isDark={isDark}
                   style={styles.headerConstellation}
                 />
-                <View style={styles.avatar}>
-                  <Image source={MAX_ICON} style={styles.avatarImage} />
+                <View
+                  style={[
+                    styles.avatar,
+                    keyboardVisible && styles.avatarKeyboardOpen,
+                  ]}
+                >
+                  <Image
+                    source={MAX_ICON}
+                    style={[
+                      styles.avatarImage,
+                      keyboardVisible && styles.avatarImageKeyboardOpen,
+                    ]}
+                  />
                 </View>
                 <View style={styles.headerCopy}>
-                  <Text style={styles.kicker}>Asistente interno</Text>
-                  <Text style={styles.title}>Max</Text>
+                  {!keyboardVisible ? (
+                    <Text style={styles.kicker}>Asistente interno</Text>
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.title,
+                      keyboardVisible && styles.titleKeyboardOpen,
+                    ]}
+                  >
+                    Max
+                  </Text>
                   <Text style={styles.subtitle}>
                     {userName || 'Usuario SMART RH'} · {user?.role || 'empleado'}
                   </Text>
@@ -730,7 +814,7 @@ export default function MaxAssistantFloating() {
                   accessibilityRole="button"
                   accessibilityLabel="Cerrar Max"
                   style={styles.closeButton}
-                  onPress={() => setOpen(false)}
+                  onPress={closeMax}
                 >
                   <Text style={styles.closeText}>×</Text>
                 </Pressable>
@@ -741,6 +825,11 @@ export default function MaxAssistantFloating() {
                 style={styles.messages}
                 contentContainerStyle={styles.messagesContent}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                onContentSizeChange={() => {
+                  scrollRef.current?.scrollToEnd({ animated: open });
+                }}
               >
                 {messages.map((item) => (
                   <View
@@ -923,8 +1012,13 @@ export default function MaxAssistantFloating() {
                 </View>
               ) : null}
 
-              <View style={styles.composer}>
-                {showSuggestions && suggestions.length ? (
+              <View
+                style={[
+                  styles.composer,
+                  keyboardVisible && styles.composerKeyboardOpen,
+                ]}
+              >
+                {showSuggestions && suggestions.length && !keyboardVisible ? (
                   <View style={styles.suggestionSection}>
                     <Text style={styles.suggestionLabel}>Sugerencias</Text>
                     <View style={styles.suggestionGrid}>
@@ -976,6 +1070,15 @@ export default function MaxAssistantFloating() {
                     placeholder="Pregúntame..."
                     placeholderTextColor={colors.muted}
                     multiline
+                    scrollEnabled
+                    blurOnSubmit={false}
+                    onFocus={() => {
+                      setHistoryOpen(false);
+                      setSelectedHistoryId(null);
+                      requestAnimationFrame(() => {
+                        scrollRef.current?.scrollToEnd({ animated: true });
+                      });
+                    }}
                   />
                   <Pressable
                     accessibilityRole="button"
@@ -1079,6 +1182,11 @@ function getStyles(isDark: boolean) {
       paddingTop: 38,
       paddingBottom: 14,
     },
+    backdropKeyboardOpen: {
+      paddingHorizontal: 6,
+      paddingTop: 20,
+      paddingBottom: 4,
+    },
     panel: {
       height: '78%',
       maxHeight: '84%',
@@ -1095,6 +1203,9 @@ function getStyles(isDark: boolean) {
       shadowOpacity: isDark ? 0.34 : 0.18,
       shadowRadius: 28,
       elevation: 18,
+    },
+    panelKeyboardOpen: {
+      borderRadius: 28,
     },
     panelBackdrop: {
       position: 'absolute',
@@ -1149,6 +1260,12 @@ function getStyles(isDark: boolean) {
       borderColor: glassBorder,
       backgroundColor: glassSurface,
     },
+    headerKeyboardOpen: {
+      minHeight: 62,
+      gap: 9,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
     headerConstellation: {
       top: -20,
       right: 16,
@@ -1167,11 +1284,19 @@ function getStyles(isDark: boolean) {
       shadowRadius: 14,
       elevation: 8,
     },
+    avatarKeyboardOpen: {
+      width: 38,
+      height: 38,
+    },
     avatarImage: {
       width: 36,
       height: 36,
       borderRadius: 999,
       resizeMode: 'contain',
+    },
+    avatarImageKeyboardOpen: {
+      width: 31,
+      height: 31,
     },
     headerCopy: {
       flex: 1,
@@ -1187,6 +1312,10 @@ function getStyles(isDark: boolean) {
       color: COLORS.text,
       fontSize: 20,
       fontWeight: '900',
+    },
+    titleKeyboardOpen: {
+      fontSize: 17,
+      lineHeight: 20,
     },
     subtitle: {
       color: COLORS.muted,
@@ -1301,6 +1430,14 @@ function getStyles(isDark: boolean) {
       borderWidth: 1,
       borderColor: glassBorder,
       backgroundColor: glassSurfaceStrong,
+    },
+    composerKeyboardOpen: {
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingTop: 7,
+      paddingBottom: 7,
+      marginHorizontal: 8,
+      marginBottom: 6,
     },
     errorCard: {
       marginHorizontal: 12,
