@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { deletePrivateMedia, downloadPrivateMedia } from '../../services/privateMedia';
+import AccountProfileEditor from '../../components/AccountProfileEditor';
 
 type Props = {
   navigation: any;
@@ -125,6 +126,8 @@ export default function PerfilScreen({ navigation }: Props) {
             </View>
           </View>
         </View>
+
+        <AccountProfileEditor navigation={navigation} />
 
         <View style={styles.statsGrid}>
           <StatusCard

@@ -36,7 +36,9 @@ export default function RegisterScreen({ navigation }: Props) {
   const [apellido, setApellido] = useState('');
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
+  const [confirmarContrasena, setConfirmarContrasena] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [telefono, setTelefono] = useState('');
   const [direccion, setDireccion] = useState('');
   const [fechaIngreso, setFechaIngreso] = useState('');
@@ -76,8 +78,33 @@ export default function RegisterScreen({ navigation }: Props) {
 
     const correoLimpio = correo.trim().toLowerCase();
 
-    if (!nombre.trim() || !apellido.trim() || !correoLimpio || !contrasena.trim()) {
-      Alert.alert('Campos requeridos', 'Completa nombre, apellido, correo y contraseña.');
+    if (
+      !nombre.trim() ||
+      !apellido.trim() ||
+      !correoLimpio ||
+      !contrasena ||
+      !confirmarContrasena
+    ) {
+      Alert.alert(
+        'Campos requeridos',
+        'Completa nombre, apellido, correo, contraseña y confirmación.'
+      );
+      return;
+    }
+
+    if (contrasena.length < 8) {
+      Alert.alert(
+        'Contraseña muy corta',
+        'La contraseña debe tener al menos 8 caracteres.'
+      );
+      return;
+    }
+
+    if (contrasena !== confirmarContrasena) {
+      Alert.alert(
+        'Las contraseñas no coinciden',
+        'Revisa ambos campos antes de crear la cuenta.'
+      );
       return;
     }
 
@@ -207,6 +234,23 @@ export default function RegisterScreen({ navigation }: Props) {
                 secureToggle
                 secureVisible={showPassword}
                 onToggleSecure={() => setShowPassword((value) => !value)}
+              />
+              <Text style={styles.passwordHint}>
+                Usa al menos 8 caracteres.
+              </Text>
+              <Input
+                styles={styles}
+                colors={COLORS}
+                label="Confirmar contraseña"
+                value={confirmarContrasena}
+                onChangeText={setConfirmarContrasena}
+                placeholder="••••••••"
+                secureTextEntry={!showConfirmPassword}
+                secureToggle
+                secureVisible={showConfirmPassword}
+                onToggleSecure={() =>
+                  setShowConfirmPassword((value) => !value)
+                }
               />
               <Input styles={styles} colors={COLORS} label="Teléfono" value={telefono} onChangeText={setTelefono} placeholder="55 1234 5678" />
               <Input styles={styles} colors={COLORS} label="Dirección" value={direccion} onChangeText={setDireccion} placeholder="Dirección del empleado" />
@@ -461,6 +505,13 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       backgroundColor: COLORS.primarySoft,
       borderWidth: 1,
       borderColor: COLORS.border,
+    },
+    passwordHint: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+      lineHeight: 17,
+      marginTop: -6,
+      marginBottom: 14,
     },
     primaryButton: {
       marginTop: 8,

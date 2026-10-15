@@ -26,18 +26,20 @@ type Props = {
   route: {
     params?: {
       correo?: string;
+      fromProfile?: boolean;
     };
   };
 };
 
 export default function ResetPasswordScreen({ navigation, route }: Props) {
-  const { theme } = useAuth();
+  const { theme, logout } = useAuth();
 
   const isDark = theme === 'dark';
   const COLORS = getColors(isDark);
   const styles = getStyles(COLORS, isDark);
 
   const correo = route?.params?.correo || '';
+  const fromProfile = Boolean(route?.params?.fromProfile);
 
   const [codigo, setCodigo] = useState('');
   const [nuevaContrasena, setNuevaContrasena] = useState('');
@@ -73,12 +75,25 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
         return;
       }
 
-      Alert.alert('Contraseña actualizada', data?.message ?? 'Contraseña actualizada correctamente.', [
-        {
-          text: 'Ir al login',
-          onPress: () => navigation.navigate('Login'),
-        },
-      ]);
+      Alert.alert(
+        'Contraseña actualizada',
+        fromProfile
+          ? 'La contraseña cambió correctamente. Por seguridad, inicia sesión de nuevo.'
+          : data?.message ?? 'Contraseña actualizada correctamente.',
+        [
+          {
+            text: 'Continuar',
+            onPress: () => {
+              if (fromProfile) {
+                logout();
+                return;
+              }
+
+              navigation.navigate('Login');
+            },
+          },
+        ]
+      );
     } catch (e: any) {
       Alert.alert(
         'Error',
@@ -241,8 +256,16 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
                   )}
                 </Pressable>
 
-                <Pressable onPress={() => navigation.navigate('Login')}>
-                  <Text style={styles.secondaryAction}>Volver al login</Text>
+                <Pressable
+                  onPress={() =>
+                    fromProfile
+                      ? navigation.goBack()
+                      : navigation.navigate('Login')
+                  }
+                >
+                  <Text style={styles.secondaryAction}>
+                    {fromProfile ? 'Cancelar cambio' : 'Volver al login'}
+                  </Text>
                 </Pressable>
               </View>
               </AnimatedEntrance>

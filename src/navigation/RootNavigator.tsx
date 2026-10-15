@@ -46,7 +46,12 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
-  ResetPassword: { correo?: string } | undefined;
+  ResetPassword:
+    | {
+        correo?: string;
+        fromProfile?: boolean;
+      }
+    | undefined;
   VerifyLoginCode: {
     correo: string;
     challengeId: string;
@@ -314,6 +319,11 @@ function EmployeeNavigator() {
       <Stack.Screen name="Actividad" component={ActividadScreen} options={{ title: 'Actividad reciente' }} />
       <Stack.Screen name="Perfil" component={PerfilScreen} options={{ title: 'Perfil del empleado' }} />
       <Stack.Screen name="Soporte" component={SoporteScreen} options={{ title: 'Soporte' }} />
+      <Stack.Screen
+        name="ResetPassword"
+        component={ResetPasswordScreen}
+        options={{ title: 'Cambiar contraseña' }}
+      />
     </Stack.Navigator>
   );
 }
@@ -398,6 +408,11 @@ function AdminNavigator() {
         name="AdminPerfil"
         component={AdminPerfilScreen}
         options={{ title: 'Perfil admin' }}
+      />
+      <Stack.Screen
+        name="ResetPassword"
+        component={ResetPasswordScreen}
+        options={{ title: 'Cambiar contraseña' }}
       />
     </Stack.Navigator>
   );

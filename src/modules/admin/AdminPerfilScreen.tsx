@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import AccountProfileEditor from '../../components/AccountProfileEditor';
 
 function getInitials(nombre?: string, apellido?: string) {
   const n = nombre?.trim()?.[0] || '';
@@ -17,7 +18,7 @@ function getInitials(nombre?: string, apellido?: string) {
   return `${n}${a}`.toUpperCase() || 'AD';
 }
 
-export default function AdminPerfilScreen() {
+export default function AdminPerfilScreen({ navigation }: { navigation: any }) {
   const { user, theme, toggleTheme, logout } = useAuth();
 
   const isDark = theme === 'dark';
@@ -56,6 +57,8 @@ export default function AdminPerfilScreen() {
             </View>
           </View>
         </View>
+
+        <AccountProfileEditor navigation={navigation} />
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información de acceso</Text>
