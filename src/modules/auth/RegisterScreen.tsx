@@ -5,6 +5,7 @@ import {
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   SafeAreaView,
@@ -16,6 +17,8 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import type { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import AnimatedEntrance from '../../components/AnimatedEntrance';
@@ -42,9 +45,30 @@ export default function RegisterScreen({ navigation }: Props) {
   const [telefono, setTelefono] = useState('');
   const [direccion, setDireccion] = useState('');
   const [fechaIngreso, setFechaIngreso] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [draftEntryDate, setDraftEntryDate] = useState(new Date());
   const [fotoBase64, setFotoBase64] = useState('');
   const [fotoUri, setFotoUri] = useState('');
   const [loading, setLoading] = useState(false);
+
+  function onEntryDateChange(event: DateTimePickerEvent, date?: Date) {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event.type !== 'dismissed' && date) {
+        setFechaIngreso(formatLocalDate(date));
+      }
+      return;
+    }
+
+    if (event.type === 'dismissed' || !date) return;
+    setDraftEntryDate(date);
+  }
+
+  function openEntryDatePicker() {
+    Keyboard.dismiss();
+    setDraftEntryDate(parseLocalDate(fechaIngreso) || new Date());
+    setShowDatePicker(true);
+  }
 
   async function pickImage() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -254,7 +278,105 @@ export default function RegisterScreen({ navigation }: Props) {
               />
               <Input styles={styles} colors={COLORS} label="Teléfono" value={telefono} onChangeText={setTelefono} placeholder="55 1234 5678" />
               <Input styles={styles} colors={COLORS} label="Dirección" value={direccion} onChangeText={setDireccion} placeholder="Dirección del empleado" />
-              <Input styles={styles} colors={COLORS} label="Fecha de ingreso" value={fechaIngreso} onChangeText={setFechaIngreso} placeholder="YYYY-MM-DD" />
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Fecha de ingreso</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Seleccionar fecha de ingreso"
+                  accessibilityHint="Abre el calendario"
+                  style={({ pressed }) => [
+                    styles.dateField,
+                    pressed ? styles.dateFieldPressed : null,
+                  ]}
+                  onPress={openEntryDatePicker}
+                >
+                  <View style={styles.dateFieldCopy}>
+                    <Text
+                      style={[
+                        styles.dateValue,
+                        !fechaIngreso ? styles.datePlaceholder : null,
+                      ]}
+                    >
+                      {fechaIngreso
+                        ? formatDisplayDate(parseLocalDate(fechaIngreso) || new Date())
+                        : 'Selecciona una fecha'}
+                    </Text>
+                    <Text style={styles.dateHelper}>
+                      Se guardará como fecha de ingreso laboral.
+                    </Text>
+                  </View>
+
+                  <View style={styles.dateAction}>
+                    <Text style={styles.dateActionText}>
+                      {fechaIngreso ? 'Cambiar' : 'Elegir'}
+                    </Text>
+                  </View>
+                </Pressable>
+
+                {Platform.OS === 'android' && showDatePicker ? (
+                  <DateTimePicker
+                    value={draftEntryDate}
+                    mode="date"
+                    display="default"
+                    onChange={onEntryDateChange}
+                  />
+                ) : null}
+              </View>
+
+              <Modal
+                visible={Platform.OS === 'ios' && showDatePicker}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDatePicker(false)}
+              >
+                <View style={styles.dateModalRoot}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Cerrar selector de fecha"
+                    style={StyleSheet.absoluteFill}
+                    onPress={() => setShowDatePicker(false)}
+                  />
+
+                  <View style={styles.dateModalPanel}>
+                    <View style={styles.dateModalHeader}>
+                      <Pressable
+                        style={styles.dateModalHeaderButton}
+                        onPress={() => setShowDatePicker(false)}
+                      >
+                        <Text style={styles.dateModalCancelText}>Cancelar</Text>
+                      </Pressable>
+
+                      <View style={styles.dateModalHeading}>
+                        <Text style={styles.dateModalEyebrow}>Fecha de ingreso</Text>
+                        <Text style={styles.dateModalTitle}>
+                          Selecciona la fecha
+                        </Text>
+                      </View>
+
+                      <Pressable
+                        style={styles.dateModalHeaderButton}
+                        onPress={() => {
+                          setFechaIngreso(formatLocalDate(draftEntryDate));
+                          setShowDatePicker(false);
+                        }}
+                      >
+                        <Text style={styles.dateModalDoneText}>Listo</Text>
+                      </Pressable>
+                    </View>
+
+                    <DateTimePicker
+                      value={draftEntryDate}
+                      mode="date"
+                      display="spinner"
+                      onChange={onEntryDateChange}
+                      locale="es-MX"
+                      themeVariant={isDark ? 'dark' : 'light'}
+                      accentColor={COLORS.primary}
+                      style={styles.systemDatePicker}
+                    />
+                  </View>
+                </View>
+              </Modal>
 
               <Pressable
                 style={({ pressed }) => [
@@ -332,6 +454,34 @@ function Input({
       )}
     </View>
   );
+}
+
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  const parsed = new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3])
+  );
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDisplayDate(date: Date) {
+  return date.toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
 function getColors(isDark: boolean) {
@@ -487,6 +637,112 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       fontSize: 15,
       color: COLORS.text,
     },
+    dateField: {
+      minHeight: 74,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.cardSoft,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+    },
+    dateFieldPressed: { opacity: 0.78 },
+    dateFieldCopy: { flex: 1 },
+    dateValue: {
+      color: COLORS.text,
+      fontSize: 15,
+      fontWeight: '700',
+      textTransform: 'capitalize',
+    },
+    datePlaceholder: {
+      color: COLORS.placeholder,
+      fontWeight: '600',
+    },
+    dateHelper: {
+      color: COLORS.textMuted,
+      fontSize: 11,
+      lineHeight: 16,
+      marginTop: 4,
+    },
+    dateAction: {
+      minWidth: 68,
+      minHeight: 38,
+      borderRadius: 14,
+      backgroundColor: COLORS.primarySoft,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 12,
+    },
+    dateActionText: {
+      color: COLORS.primary,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    dateModalRoot: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: isDark
+        ? 'rgba(1,8,18,0.76)'
+        : 'rgba(15,23,42,0.34)',
+      padding: 14,
+    },
+    dateModalPanel: {
+      borderRadius: 28,
+      backgroundColor: COLORS.card,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      padding: 16,
+      paddingBottom: 22,
+      ...shadow,
+    },
+    dateModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      paddingBottom: 8,
+    },
+    dateModalHeaderButton: {
+      minWidth: 66,
+      minHeight: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dateModalHeading: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    dateModalEyebrow: {
+      color: COLORS.textMuted,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    dateModalTitle: {
+      color: COLORS.text,
+      fontSize: 16,
+      fontWeight: '800',
+      marginTop: 3,
+    },
+    dateModalCancelText: {
+      color: COLORS.textMuted,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    dateModalDoneText: {
+      color: COLORS.primary,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    systemDatePicker: {
+      height: 190,
+    },
     passwordInputWrap: {
       position: 'relative',
       justifyContent: 'center',
@@ -541,3 +797,4 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
     },
   });
 }
+

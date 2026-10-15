@@ -20,6 +20,7 @@ import {
 
 type Props = {
   navigation: any;
+  embedded?: boolean;
 };
 
 function initials(nombre?: string, apellido?: string) {
@@ -27,7 +28,10 @@ function initials(nombre?: string, apellido?: string) {
     .toUpperCase() || 'SRH';
 }
 
-export default function AccountProfileEditor({ navigation }: Props) {
+export default function AccountProfileEditor({
+  navigation,
+  embedded = false,
+}: Props) {
   const { user, token, theme, updateUser } = useAuth();
   const isDark = theme === 'dark';
   const colors = getSmartRhColors(isDark);
@@ -172,7 +176,7 @@ export default function AccountProfileEditor({ navigation }: Props) {
   const avatarSource = photoUri || localUri;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, embedded ? styles.cardEmbedded : null]}>
       <View style={styles.headingRow}>
         <View style={styles.headingCopy}>
           <Text style={styles.eyebrow}>Mi cuenta</Text>
@@ -299,6 +303,17 @@ function getStyles(isDark: boolean) {
       borderColor: colors.border,
       marginBottom: 18,
       ...shadow,
+    },
+    cardEmbedded: {
+      backgroundColor: 'transparent',
+      borderRadius: 0,
+      borderWidth: 0,
+      padding: 0,
+      marginBottom: 0,
+      shadowOpacity: 0,
+      shadowRadius: 0,
+      shadowOffset: { width: 0, height: 0 },
+      elevation: 0,
     },
     headingRow: {
       flexDirection: 'row',
@@ -465,3 +480,4 @@ function getStyles(isDark: boolean) {
     disabled: { opacity: 0.62 },
   });
 }
+

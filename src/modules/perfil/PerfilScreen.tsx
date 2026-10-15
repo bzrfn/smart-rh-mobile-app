@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   Image,
+  LayoutAnimation,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +19,11 @@ type Props = {
 };
 
 type StatusType = 'complete' | 'pending' | 'neutral';
+type ProfileSectionKey =
+  | 'cuenta'
+  | 'resumen'
+  | 'datos'
+  | 'documentacion';
 
 function formatDate(value?: string | null) {
   if (!value) return 'No registrado';
@@ -42,13 +49,20 @@ function getInitials(nombre?: string, apellido?: string) {
 }
 
 export default function PerfilScreen({ navigation }: Props) {
-  const { user, permisos, theme, toggleTheme, logout, token } = useAuth();
+  const { user, permisos, theme, token } = useAuth();
 
   const isDark = theme === 'dark';
   const styles = getStyles(isDark);
 
   const [photoLocalUri, setPhotoLocalUri] = useState('');
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
+  const [activeSection, setActiveSection] =
+    useState<ProfileSectionKey | null>('cuenta');
+
+  function toggleSection(section: ProfileSectionKey) {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setActiveSection((current) => (current === section ? null : section));
+  }
 
   const hasPhoto = Boolean(user?.foto_perfil_url);
 
@@ -127,113 +141,97 @@ export default function PerfilScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <AccountProfileEditor navigation={navigation} />
-
-        <View style={styles.statsGrid}>
-          <StatusCard
-            title="Foto"
-            value={hasPhoto ? 'Lista' : 'Pendiente'}
-            detail={hasPhoto ? 'Imagen registrada.' : 'Sin foto de perfil.'}
-            status={hasPhoto ? 'complete' : 'pending'}
+        <View style={styles.sectionStack}>
+          <ProfileAccordion
+            sectionKey="cuenta"
+            kicker="Mi cuenta"
+            title="Editar mi perfil"
+            subtitle="Actualiza tu foto, teléfono, dirección o contraseña."
+            isOpen={activeSection === 'cuenta'}
+            onToggle={toggleSection}
             styles={styles}
-          />
+          >
+            <AccountProfileEditor navigation={navigation} embedded />
+          </ProfileAccordion>
 
-          <StatusCard
-            title="Credencial"
-            value={hasCredential ? 'Lista' : 'Pendiente'}
-            detail={hasCredential ? 'Credencial disponible.' : 'Requiere generación.'}
-            status={hasCredential ? 'complete' : 'pending'}
+          <ProfileAccordion
+            sectionKey="resumen"
+            kicker="Resumen"
+            title="Estado de mi expediente"
+            subtitle="Consulta rápidamente lo que ya está listo y lo que falta."
+            isOpen={activeSection === 'resumen'}
+            onToggle={toggleSection}
             styles={styles}
-          />
+          >
+            <View style={styles.statsGrid}>
+              <StatusCard
+                title="Foto"
+                value={hasPhoto ? 'Lista' : 'Pendiente'}
+                detail={hasPhoto ? 'Imagen registrada.' : 'Sin foto de perfil.'}
+                status={hasPhoto ? 'complete' : 'pending'}
+                styles={styles}
+              />
+              <StatusCard
+                title="Credencial"
+                value={hasCredential ? 'Lista' : 'Pendiente'}
+                detail={hasCredential ? 'Credencial disponible.' : 'Requiere generación.'}
+                status={hasCredential ? 'complete' : 'pending'}
+                styles={styles}
+              />
+              <StatusCard
+                title="Vacaciones"
+                value={String(vacaciones)}
+                detail="Días disponibles."
+                status="neutral"
+                styles={styles}
+              />
+            </View>
+          </ProfileAccordion>
 
-          <StatusCard
-            title="Vacaciones"
-            value={String(vacaciones)}
-            detail="Días disponibles."
-            status="neutral"
+          <ProfileAccordion
+            sectionKey="datos"
+            kicker="Datos personales"
+            title="Información del empleado"
+            subtitle="Datos principales registrados en tu expediente laboral."
+            isOpen={activeSection === 'datos'}
+            onToggle={toggleSection}
             styles={styles}
-          />
-        </View>
+          >
+            <InfoRow label="Nombre completo" value={`${user?.nombre || ''} ${user?.apellido || ''}`} styles={styles} />
+            <InfoRow label="Correo electrónico" value={user?.correo || 'No registrado'} styles={styles} />
+            <InfoRow label="Rol" value={user?.role || 'No registrado'} styles={styles} />
+            <InfoRow label="Teléfono" value={user?.telefono || 'No registrado'} styles={styles} />
+            <InfoRow label="Dirección" value={user?.direccion || 'No registrado'} styles={styles} />
+            <InfoRow label="Fecha de ingreso" value={formatDate(user?.fecha_ingreso)} styles={styles} />
+          </ProfileAccordion>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionEyebrow}>Datos personales</Text>
-          <Text style={styles.sectionTitle}>Información del empleado</Text>
-
-          <InfoRow label="Nombre completo" value={`${user?.nombre || ''} ${user?.apellido || ''}`} styles={styles} />
-          <InfoRow label="Correo electrónico" value={user?.correo || 'No registrado'} styles={styles} />
-          <InfoRow label="Rol" value={user?.role || 'No registrado'} styles={styles} />
-          <InfoRow label="Teléfono" value={user?.telefono || 'No registrado'} styles={styles} />
-          <InfoRow label="Dirección" value={user?.direccion || 'No registrado'} styles={styles} />
-          <InfoRow label="Fecha de ingreso" value={formatDate(user?.fecha_ingreso)} styles={styles} />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionEyebrow}>Estado del expediente</Text>
-          <Text style={styles.sectionTitle}>Documentación y accesos</Text>
-
-          <DocumentStatus
-            title="Foto de perfil"
-            detail={hasPhoto ? 'La foto está vinculada al expediente.' : 'La foto aún no está registrada.'}
-            status={hasPhoto ? 'complete' : 'pending'}
+          <ProfileAccordion
+            sectionKey="documentacion"
+            kicker="Expediente"
+            title="Documentación y permisos"
+            subtitle="Revisa qué documentos y funciones tienes disponibles."
+            isOpen={activeSection === 'documentacion'}
+            onToggle={toggleSection}
             styles={styles}
-          />
+          >
+            <DocumentStatus
+              title="Foto de perfil"
+              detail={hasPhoto ? 'La foto está vinculada al expediente.' : 'La foto aún no está registrada.'}
+              status={hasPhoto ? 'complete' : 'pending'}
+              styles={styles}
+            />
+            <DocumentStatus
+              title="Credencial digital"
+              detail={hasCredential ? 'Existe una credencial digital disponible.' : 'Aún no se detecta credencial digital.'}
+              status={hasCredential ? 'complete' : 'pending'}
+              styles={styles}
+            />
+            <DocumentStatus title="Asistencia" detail={permisos.asistencia ? 'Consulta y registro habilitados.' : 'Función no habilitada para tu cuenta.'} status={permisos.asistencia ? 'complete' : 'pending'} styles={styles} />
+            <DocumentStatus title="Contratos" detail={permisos.contratos ? 'Consulta de contratos habilitada.' : 'Función no habilitada para tu cuenta.'} status={permisos.contratos ? 'complete' : 'pending'} styles={styles} />
+            <DocumentStatus title="Nómina" detail={permisos.nomina ? 'Consulta de recibos habilitada.' : 'Función no habilitada para tu cuenta.'} status={permisos.nomina ? 'complete' : 'pending'} styles={styles} />
+            <DocumentStatus title="Vacaciones" detail={permisos.vacaciones ? 'Solicitud y consulta habilitadas.' : 'Función no habilitada para tu cuenta.'} status={permisos.vacaciones ? 'complete' : 'pending'} styles={styles} />
+          </ProfileAccordion>
 
-          <DocumentStatus
-            title="Credencial digital"
-            detail={hasCredential ? 'Existe una credencial digital disponible.' : 'Aún no se detecta credencial digital.'}
-            status={hasCredential ? 'complete' : 'pending'}
-            styles={styles}
-          />
-
-          <DocumentStatus
-            title="Asistencia"
-            detail={permisos.asistencia ? 'Módulo habilitado para el usuario.' : 'Módulo bloqueado para el usuario.'}
-            status={permisos.asistencia ? 'complete' : 'pending'}
-            styles={styles}
-          />
-
-          <DocumentStatus
-            title="Contratos"
-            detail={permisos.contratos ? 'Consulta contractual habilitada.' : 'Consulta contractual bloqueada.'}
-            status={permisos.contratos ? 'complete' : 'pending'}
-            styles={styles}
-          />
-
-          <DocumentStatus
-            title="Nómina"
-            detail={permisos.nomina ? 'Consulta de nómina habilitada.' : 'Consulta de nómina bloqueada.'}
-            status={permisos.nomina ? 'complete' : 'pending'}
-            styles={styles}
-          />
-
-          <DocumentStatus
-            title="Vacaciones"
-            detail={permisos.vacaciones ? 'Solicitud y consulta habilitada.' : 'Módulo de vacaciones bloqueado.'}
-            status={permisos.vacaciones ? 'complete' : 'pending'}
-            styles={styles}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionEyebrow}>Accesos rápidos</Text>
-          <Text style={styles.sectionTitle}>Acciones del perfil</Text>
-
-          <View style={styles.actionsGrid}>
-            <ActionButton label="Documentos" onPress={() => navigation.navigate('Documentos')} styles={styles} />
-            <ActionButton label="Credencial" onPress={() => navigation.navigate('Credencial')} styles={styles} />
-            <ActionButton label="Actividad" onPress={() => navigation.navigate('Actividad')} styles={styles} />
-            <ActionButton label="Notificaciones" onPress={() => navigation.navigate('Notificaciones')} styles={styles} />
-          </View>
-
-          <Pressable style={styles.themeButton} onPress={toggleTheme}>
-            <Text style={styles.themeButtonText}>
-              {isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-            </Text>
-          </Pressable>
-
-          <Pressable style={styles.logoutButton} onPress={logout}>
-            <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
-          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -328,19 +326,53 @@ function DocumentStatus({
   );
 }
 
-function ActionButton({
-  label,
-  onPress,
+function ProfileAccordion({
+  sectionKey,
+  kicker,
+  title,
+  subtitle,
+  isOpen,
+  onToggle,
   styles,
+  children,
 }: {
-  label: string;
-  onPress: () => void;
+  sectionKey: ProfileSectionKey;
+  kicker: string;
+  title: string;
+  subtitle: string;
+  isOpen: boolean;
+  onToggle: (section: ProfileSectionKey) => void;
   styles: any;
+  children: ReactNode;
 }) {
   return (
-    <Pressable style={styles.actionButton} onPress={onPress}>
-      <Text style={styles.actionButtonText}>{label}</Text>
-    </Pressable>
+    <View style={[styles.accordion, isOpen && styles.accordionOpen]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isOpen }}
+        accessibilityLabel={`${isOpen ? 'Cerrar' : 'Abrir'} ${title}`}
+        style={({ pressed }) => [
+          styles.accordionHeader,
+          pressed ? styles.accordionPressed : null,
+        ]}
+        onPress={() => onToggle(sectionKey)}
+      >
+        <View style={styles.accordionCopy}>
+          <Text style={styles.accordionKicker}>{kicker}</Text>
+          <Text style={styles.accordionTitle}>{title}</Text>
+          <Text style={styles.accordionSubtitle}>{subtitle}</Text>
+        </View>
+
+        <View style={[styles.chevronButton, isOpen && styles.chevronButtonOpen]}>
+          <View style={[styles.chevron, isOpen && styles.chevronOpen]}>
+            <View style={[styles.chevronStroke, styles.chevronLeft]} />
+            <View style={[styles.chevronStroke, styles.chevronRight]} />
+          </View>
+        </View>
+      </Pressable>
+
+      {isOpen ? <View style={styles.accordionBody}>{children}</View> : null}
+    </View>
   );
 }
 
@@ -387,6 +419,93 @@ function getStyles(isDark: boolean) {
       gap: 16,
       alignItems: 'center',
       elevation: 4,
+    },
+    sectionStack: {
+      gap: 12,
+    },
+    accordion: {
+      backgroundColor: COLORS.card,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      overflow: 'hidden',
+      elevation: 2,
+    },
+    accordionOpen: {
+      borderColor: isDark
+        ? 'rgba(93,173,226,0.42)'
+        : 'rgba(10,87,164,0.22)',
+      elevation: 4,
+    },
+    accordionHeader: {
+      minHeight: 106,
+      padding: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+    },
+    accordionPressed: { opacity: 0.76 },
+    accordionCopy: { flex: 1, minWidth: 0 },
+    accordionKicker: {
+      color: COLORS.teal,
+      fontSize: 10,
+      lineHeight: 14,
+      fontWeight: '900',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom: 5,
+    },
+    accordionTitle: {
+      color: COLORS.text,
+      fontSize: 19,
+      lineHeight: 24,
+      fontWeight: '900',
+    },
+    accordionSubtitle: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+      lineHeight: 18,
+      fontWeight: '600',
+      marginTop: 5,
+    },
+    chevronButton: {
+      width: 42,
+      height: 42,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.cardSoft,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    chevronButtonOpen: {
+      backgroundColor: isDark
+        ? 'rgba(93,173,226,0.15)'
+        : 'rgba(10,87,164,0.10)',
+      borderColor: COLORS.primary,
+    },
+    chevron: {
+      width: 18,
+      height: 12,
+      position: 'relative',
+      transform: [{ rotate: '0deg' }],
+    },
+    chevronOpen: { transform: [{ rotate: '180deg' }] },
+    chevronStroke: {
+      position: 'absolute',
+      top: 4,
+      width: 11,
+      height: 2,
+      borderRadius: 2,
+      backgroundColor: COLORS.primary,
+    },
+    chevronLeft: { left: 0, transform: [{ rotate: '42deg' }] },
+    chevronRight: { right: 0, transform: [{ rotate: '-42deg' }] },
+    accordionBody: {
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
+      padding: 16,
+      backgroundColor: COLORS.cardSoft,
     },
     avatar: {
       width: 88,
@@ -449,11 +568,13 @@ function getStyles(isDark: boolean) {
     },
     statsGrid: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: 12,
-      marginBottom: 18,
     },
     statusCard: {
       flex: 1,
+      flexBasis: '46%',
+      minWidth: 140,
       minHeight: 126,
       backgroundColor: COLORS.card,
       borderRadius: 22,
@@ -592,55 +713,6 @@ function getStyles(isDark: boolean) {
     },
     documentBadgeTextNeutral: {
       color: COLORS.primary,
-    },
-    actionsGrid: {
-      gap: 12,
-      marginBottom: 14,
-    },
-    actionButton: {
-      minHeight: 50,
-      borderRadius: 16,
-      backgroundColor: COLORS.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 14,
-    },
-    actionButtonText: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: '900',
-    },
-    themeButton: {
-      minHeight: 50,
-      borderRadius: 16,
-      backgroundColor: COLORS.cardSoft,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 14,
-      marginTop: 4,
-    },
-    themeButtonText: {
-      color: COLORS.primary,
-      fontSize: 15,
-      fontWeight: '900',
-    },
-    logoutButton: {
-      minHeight: 50,
-      borderRadius: 16,
-      backgroundColor: COLORS.dangerBg,
-      borderWidth: 1,
-      borderColor: COLORS.danger,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 14,
-      marginTop: 12,
-    },
-    logoutButtonText: {
-      color: COLORS.danger,
-      fontSize: 15,
-      fontWeight: '900',
     },
   });
 }
