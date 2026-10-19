@@ -192,7 +192,7 @@ export default function AccountProfileEditor({
     if (
       deletingAccount ||
       !deletePassword ||
-      deleteConfirmation !== 'ELIMINAR'
+      deleteConfirmation !== 'CONFIRMAR'
     ) {
       return;
     }
@@ -424,19 +424,23 @@ export default function AccountProfileEditor({
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Confirmación</Text>
+              <Text style={styles.label}>Confirmación de seguridad</Text>
+              <Text style={styles.confirmationLead}>Escribe esta palabra para continuar:</Text>
+              <View style={styles.confirmationWord}>
+                <Text style={styles.confirmationWordText}>CONFIRMAR</Text>
+              </View>
               <TextInput
                 value={deleteConfirmation}
                 onChangeText={setDeleteConfirmation}
-                placeholder="Escribe ELIMINAR"
+                placeholder="Escribe CONFIRMAR"
                 placeholderTextColor={colors.placeholder}
                 autoCapitalize="characters"
                 autoCorrect={false}
-                maxLength={8}
+                maxLength={9}
                 style={styles.input}
               />
               <Text style={styles.confirmationHint}>
-                Para continuar, escribe ELIMINAR en mayúsculas.
+                La palabra debe coincidir exactamente y estar en mayúsculas.
               </Text>
             </View>
 
@@ -457,13 +461,13 @@ export default function AccountProfileEditor({
                   styles.confirmDeleteButton,
                   pressed && !deletingAccount ? styles.pressed : null,
                   (!deletePassword ||
-                    deleteConfirmation !== 'ELIMINAR' ||
+                    deleteConfirmation !== 'CONFIRMAR' ||
                     deletingAccount) && styles.disabled,
                 ]}
                 onPress={deleteAccount}
                 disabled={
                   !deletePassword ||
-                  deleteConfirmation !== 'ELIMINAR' ||
+                  deleteConfirmation !== 'CONFIRMAR' ||
                   deletingAccount
                 }
               >
@@ -673,14 +677,14 @@ function getStyles(isDark: boolean) {
     deleteCard: {
       gap: 15,
       borderRadius: 20,
-      borderWidth: 1,
-      borderColor: colors.danger,
-      backgroundColor: colors.dangerSoft,
+      borderWidth: 2,
+      borderColor: isDark ? '#EF4444' : '#DC2626',
+      backgroundColor: isDark ? '#2B1015' : '#FFF1F2',
       padding: 16,
     },
     deleteCopy: { flex: 1 },
     deleteEyebrow: {
-      color: colors.danger,
+      color: isDark ? '#FF6B6B' : '#B91C1C',
       fontSize: 10,
       lineHeight: 14,
       fontWeight: '900',
@@ -689,13 +693,13 @@ function getStyles(isDark: boolean) {
       marginBottom: 5,
     },
     deleteTitle: {
-      color: colors.text,
+      color: isDark ? '#FFF1F2' : '#7F1D1D',
       fontSize: 16,
       lineHeight: 21,
       fontWeight: '900',
     },
     deleteText: {
-      color: colors.textMuted,
+      color: isDark ? '#F7B4BB' : '#991B1B',
       fontSize: 12,
       lineHeight: 18,
       marginTop: 6,
@@ -706,12 +710,12 @@ function getStyles(isDark: boolean) {
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
-      borderColor: colors.danger,
-      backgroundColor: colors.card,
+      borderColor: isDark ? '#FF6B6B' : '#B91C1C',
+      backgroundColor: isDark ? '#EF4444' : '#DC2626',
       paddingHorizontal: 16,
     },
     deleteButtonText: {
-      color: colors.danger,
+      color: '#FFFFFF',
       fontSize: 13,
       fontWeight: '900',
     },
@@ -730,8 +734,8 @@ function getStyles(isDark: boolean) {
       maxWidth: 520,
       maxHeight: '90%',
       borderRadius: 28,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderWidth: 2,
+      borderColor: isDark ? '#EF4444' : '#DC2626',
       backgroundColor: colors.card,
       overflow: 'hidden',
       ...shadow,
@@ -745,19 +749,19 @@ function getStyles(isDark: boolean) {
       borderRadius: 15,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.dangerSoft,
-      borderWidth: 1,
-      borderColor: colors.danger,
+      backgroundColor: isDark ? '#3B1118' : '#FEE2E2',
+      borderWidth: 2,
+      borderColor: isDark ? '#EF4444' : '#DC2626',
       marginBottom: 16,
     },
     modalDangerMarkText: {
-      color: colors.danger,
+      color: isDark ? '#FF6B6B' : '#B91C1C',
       fontSize: 23,
       lineHeight: 25,
       fontWeight: '900',
     },
     modalEyebrow: {
-      color: colors.danger,
+      color: isDark ? '#FF6B6B' : '#B91C1C',
       fontSize: 10,
       lineHeight: 14,
       fontWeight: '900',
@@ -783,6 +787,29 @@ function getStyles(isDark: boolean) {
       fontSize: 11,
       lineHeight: 16,
       marginTop: 7,
+    },
+    confirmationLead: {
+      color: colors.textMuted,
+      fontSize: 12,
+      lineHeight: 17,
+      marginBottom: 8,
+    },
+    confirmationWord: {
+      alignSelf: 'flex-start',
+      borderRadius: 11,
+      borderWidth: 1,
+      borderColor: isDark ? '#EF4444' : '#DC2626',
+      backgroundColor: isDark ? '#3B1118' : '#FEE2E2',
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      marginBottom: 10,
+    },
+    confirmationWordText: {
+      color: isDark ? '#FF6B6B' : '#B91C1C',
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: '900',
+      letterSpacing: 1.2,
     },
     modalActions: {
       flexDirection: 'row',
@@ -814,7 +841,7 @@ function getStyles(isDark: boolean) {
       borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.danger,
+      backgroundColor: isDark ? '#EF4444' : '#DC2626',
       paddingHorizontal: 18,
     },
     confirmDeleteButtonText: {
