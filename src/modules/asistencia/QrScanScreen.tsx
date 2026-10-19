@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Linking,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -61,11 +62,6 @@ export default function QrScanScreen({ navigation }: Props) {
       if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (!permission) return;
-    if (!permission.granted) requestPermission();
-  }, [permission, requestPermission]);
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -237,6 +233,8 @@ export default function QrScanScreen({ navigation }: Props) {
   }
 
   if (!permission.granted) {
+    const cannotRequestAgain = permission.canAskAgain === false;
+
     return (
       <SafeAreaView style={styles.safeCenter}>
         <View style={styles.stateCard}>
@@ -247,7 +245,9 @@ export default function QrScanScreen({ navigation }: Props) {
           <Text style={styles.stateBrand}>SMART RH</Text>
           <Text style={styles.stateTitle}>Permiso de cámara requerido</Text>
           <Text style={styles.stateText}>
-            Necesitamos acceso a la cámara para escanear el código QR de asistencia.
+            {cannotRequestAgain
+              ? 'Activa la cámara en Configuración para escanear el código QR de asistencia.'
+              : 'SMART RH usará la cámara para leer el código QR mostrado en la terminal de asistencia.'}
           </Text>
 
           <Pressable
@@ -255,9 +255,18 @@ export default function QrScanScreen({ navigation }: Props) {
               styles.primaryBtn,
               pressed && styles.primaryBtnPressed,
             ]}
-            onPress={requestPermission}
+            onPress={() => {
+              if (cannotRequestAgain) {
+                Linking.openSettings();
+                return;
+              }
+
+              requestPermission();
+            }}
           >
-            <Text style={styles.primaryBtnText}>Dar permiso</Text>
+            <Text style={styles.primaryBtnText}>
+              {cannotRequestAgain ? 'Abrir Configuración' : 'Continuar'}
+            </Text>
           </Pressable>
         </View>
       </SafeAreaView>

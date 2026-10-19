@@ -5,6 +5,7 @@ import React, {
 
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -352,6 +353,9 @@ export default function VerificarCredencialScreen() {
   if (
     !permission.granted
   ) {
+    const cannotRequestAgain =
+      permission.canAskAgain === false;
+
     return (
       <SafeAreaView
         style={
@@ -384,23 +388,32 @@ export default function VerificarCredencialScreen() {
               styles.stateText
             }
           >
-            La cámara se utiliza únicamente para leer el QR de la credencial que deseas verificar.
+            {cannotRequestAgain
+              ? 'Activa la cámara en Configuración para verificar credenciales laborales.'
+              : 'SMART RH usará la cámara únicamente para leer el QR de la credencial laboral que deseas verificar.'}
           </Text>
 
           <Pressable
             style={
               styles.primaryButton
             }
-            onPress={
-              requestPermission
-            }
+            onPress={() => {
+              if (cannotRequestAgain) {
+                Linking.openSettings();
+                return;
+              }
+
+              requestPermission();
+            }}
           >
             <Text
               style={
                 styles.primaryButtonText
               }
             >
-              Dar permiso
+              {cannotRequestAgain
+                ? 'Abrir Configuración'
+                : 'Continuar'}
             </Text>
           </Pressable>
         </View>

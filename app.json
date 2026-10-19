@@ -13,7 +13,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "La aplicación necesita acceso a la cámara para escanear códigos QR."
+          "cameraPermission": "SMART RH usa la cámara únicamente para escanear códigos QR de asistencia y verificar credenciales laborales; por ejemplo, para leer el QR mostrado en la terminal de tu centro de trabajo."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SMART RH accede únicamente a la foto que selecciones para usarla como imagen de perfil; por ejemplo, puedes elegir una fotografía para identificar tu expediente laboral."
         }
       ],
       "@react-native-community/datetimepicker",
@@ -33,7 +39,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.rrhh.mobileapp",
       "infoPlist": {
-        "NSCameraUsageDescription": "Esta aplicación usa la cámara para registrar asistencia mediante QR.",
+        "NSCameraUsageDescription": "SMART RH usa la cámara únicamente para escanear códigos QR de asistencia y verificar credenciales laborales; por ejemplo, para leer el QR mostrado en la terminal de tu centro de trabajo.",
+        "NSPhotoLibraryUsageDescription": "SMART RH accede únicamente a la foto que selecciones para usarla como imagen de perfil; por ejemplo, puedes elegir una fotografía para identificar tu expediente laboral.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "buildNumber": "1"

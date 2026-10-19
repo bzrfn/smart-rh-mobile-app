@@ -3,7 +3,11 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -32,7 +36,7 @@ export default function AccountProfileEditor({
   navigation,
   embedded = false,
 }: Props) {
-  const { user, token, theme, updateUser } = useAuth();
+  const { user, token, theme, updateUser, logout } = useAuth();
   const isDark = theme === 'dark';
   const colors = getSmartRhColors(isDark);
   const styles = getStyles(isDark);
@@ -45,6 +49,10 @@ export default function AccountProfileEditor({
   const [photoFilename, setPhotoFilename] = useState('perfil.jpg');
   const [saving, setSaving] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     setTelefono(user?.telefono || '');
@@ -173,9 +181,61 @@ export default function AccountProfileEditor({
     }
   }
 
+  function closeDeleteModal() {
+    if (deletingAccount) return;
+    setDeleteModalOpen(false);
+    setDeletePassword('');
+    setDeleteConfirmation('');
+  }
+
+  async function deleteAccount() {
+    if (
+      deletingAccount ||
+      !deletePassword ||
+      deleteConfirmation !== 'ELIMINAR'
+    ) {
+      return;
+    }
+
+    try {
+      setDeletingAccount(true);
+
+      const { data } = await api.delete('/users/me', {
+        data: {
+          password: deletePassword,
+          confirmation: deleteConfirmation,
+        },
+      });
+
+      if (!data?.ok) {
+        throw new Error(data?.message || 'No se pudo eliminar la cuenta.');
+      }
+
+      setDeleteModalOpen(false);
+      setDeletePassword('');
+      setDeleteConfirmation('');
+      await logout();
+
+      Alert.alert(
+        'Cuenta eliminada',
+        'Tu cuenta y tus datos personales fueron eliminados. Ya no puedes iniciar sesión con este correo.'
+      );
+    } catch (error: any) {
+      Alert.alert(
+        'No se pudo eliminar la cuenta',
+        error?.response?.data?.message ||
+          error?.message ||
+          'Revisa tu conexión e intenta nuevamente.'
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
+  }
+
   const avatarSource = photoUri || localUri;
 
   return (
+    <>
     <View style={[styles.card, embedded ? styles.cardEmbedded : null]}>
       <View style={styles.headingRow}>
         <View style={styles.headingCopy}>
@@ -286,7 +346,141 @@ export default function AccountProfileEditor({
           )}
         </Pressable>
       </View>
+
+      <View style={styles.securityDivider} />
+
+      <View style={styles.deleteCard}>
+        <View style={styles.deleteCopy}>
+          <Text style={styles.deleteEyebrow}>Privacidad y cuenta</Text>
+          <Text style={styles.deleteTitle}>Eliminar cuenta</Text>
+          <Text style={styles.deleteText}>
+            Elimina permanentemente tu acceso y tus datos personales de SMART RH.
+            Los registros laborales que deban conservarse por obligación legal quedarán sin tu cuenta activa.
+          </Text>
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Eliminar mi cuenta permanentemente"
+          style={({ pressed }) => [
+            styles.deleteButton,
+            pressed ? styles.pressed : null,
+          ]}
+          onPress={() => setDeleteModalOpen(true)}
+        >
+          <Text style={styles.deleteButtonText}>Eliminar mi cuenta</Text>
+        </Pressable>
+      </View>
     </View>
+
+    <Modal
+      visible={deleteModalOpen}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={closeDeleteModal}
+    >
+      <KeyboardAvoidingView
+        style={styles.modalBackdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar confirmación"
+          style={StyleSheet.absoluteFill}
+          onPress={closeDeleteModal}
+        />
+
+        <View style={styles.modalCard}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.modalContent}
+          >
+            <View style={styles.modalDangerMark}>
+              <Text style={styles.modalDangerMarkText}>!</Text>
+            </View>
+
+            <Text style={styles.modalEyebrow}>Acción permanente</Text>
+            <Text style={styles.modalTitle}>Confirmar eliminación</Text>
+            <Text style={styles.modalText}>
+              Perderás el acceso a tu cuenta, foto de perfil, documentos generados,
+              notificaciones y actividad asociada. Esta acción no se puede deshacer.
+            </Text>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Contraseña actual</Text>
+              <TextInput
+                value={deletePassword}
+                onChangeText={setDeletePassword}
+                placeholder="Escribe tu contraseña"
+                placeholderTextColor={colors.placeholder}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+                style={styles.input}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Confirmación</Text>
+              <TextInput
+                value={deleteConfirmation}
+                onChangeText={setDeleteConfirmation}
+                placeholder="Escribe ELIMINAR"
+                placeholderTextColor={colors.placeholder}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={8}
+                style={styles.input}
+              />
+              <Text style={styles.confirmationHint}>
+                Para continuar, escribe ELIMINAR en mayúsculas.
+              </Text>
+            </View>
+
+            <View style={styles.modalActions}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.cancelButton,
+                  pressed ? styles.pressed : null,
+                ]}
+                onPress={closeDeleteModal}
+                disabled={deletingAccount}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.confirmDeleteButton,
+                  pressed && !deletingAccount ? styles.pressed : null,
+                  (!deletePassword ||
+                    deleteConfirmation !== 'ELIMINAR' ||
+                    deletingAccount) && styles.disabled,
+                ]}
+                onPress={deleteAccount}
+                disabled={
+                  !deletePassword ||
+                  deleteConfirmation !== 'ELIMINAR' ||
+                  deletingAccount
+                }
+              >
+                {deletingAccount ? (
+                  <ActivityIndicator color={colors.white} size="small" />
+                ) : (
+                  <Text style={styles.confirmDeleteButtonText}>
+                    Eliminar permanentemente
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+    </>
   );
 }
 
@@ -475,6 +669,159 @@ function getStyles(isDark: boolean) {
       color: colors.primary,
       fontSize: 13,
       fontWeight: '900',
+    },
+    deleteCard: {
+      gap: 15,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.danger,
+      backgroundColor: colors.dangerSoft,
+      padding: 16,
+    },
+    deleteCopy: { flex: 1 },
+    deleteEyebrow: {
+      color: colors.danger,
+      fontSize: 10,
+      lineHeight: 14,
+      fontWeight: '900',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom: 5,
+    },
+    deleteTitle: {
+      color: colors.text,
+      fontSize: 16,
+      lineHeight: 21,
+      fontWeight: '900',
+    },
+    deleteText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      lineHeight: 18,
+      marginTop: 6,
+    },
+    deleteButton: {
+      minHeight: 46,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.danger,
+      backgroundColor: colors.card,
+      paddingHorizontal: 16,
+    },
+    deleteButtonText: {
+      color: colors.danger,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    modalBackdrop: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark
+        ? 'rgba(2, 8, 18, 0.82)'
+        : 'rgba(15, 23, 42, 0.48)',
+      paddingHorizontal: 20,
+      paddingVertical: 30,
+    },
+    modalCard: {
+      width: '100%',
+      maxWidth: 520,
+      maxHeight: '90%',
+      borderRadius: 28,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+      overflow: 'hidden',
+      ...shadow,
+    },
+    modalContent: {
+      padding: 22,
+    },
+    modalDangerMark: {
+      width: 44,
+      height: 44,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.dangerSoft,
+      borderWidth: 1,
+      borderColor: colors.danger,
+      marginBottom: 16,
+    },
+    modalDangerMarkText: {
+      color: colors.danger,
+      fontSize: 23,
+      lineHeight: 25,
+      fontWeight: '900',
+    },
+    modalEyebrow: {
+      color: colors.danger,
+      fontSize: 10,
+      lineHeight: 14,
+      fontWeight: '900',
+      letterSpacing: 1.1,
+      textTransform: 'uppercase',
+    },
+    modalTitle: {
+      color: colors.text,
+      fontSize: 23,
+      lineHeight: 29,
+      fontWeight: '900',
+      marginTop: 5,
+    },
+    modalText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      lineHeight: 20,
+      marginTop: 9,
+      marginBottom: 20,
+    },
+    confirmationHint: {
+      color: colors.textSubtle,
+      fontSize: 11,
+      lineHeight: 16,
+      marginTop: 7,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 8,
+    },
+    cancelButton: {
+      flexGrow: 1,
+      minWidth: 112,
+      minHeight: 50,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      backgroundColor: colors.cardSoft,
+      paddingHorizontal: 16,
+    },
+    cancelButtonText: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    confirmDeleteButton: {
+      flexGrow: 2,
+      minWidth: 210,
+      minHeight: 50,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.danger,
+      paddingHorizontal: 18,
+    },
+    confirmDeleteButtonText: {
+      color: colors.white,
+      fontSize: 13,
+      fontWeight: '900',
+      textAlign: 'center',
     },
     pressed: { opacity: 0.76 },
     disabled: { opacity: 0.62 },
