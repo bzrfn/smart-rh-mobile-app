@@ -453,15 +453,20 @@ export default function LoginScreen({ navigation }: Props) {
                 </Pressable>
 
                 <View style={styles.actionsBlock}>
-                  <Pressable onPress={() => navigation.navigate('Register')}>
-                    <Text style={styles.primaryAction}>Crear cuenta</Text>
-                  </Pressable>
-
                   <Pressable onPress={() => navigation.navigate('ForgotPassword')}>
                     <Text style={styles.secondaryAction}>
                       ¿Olvidaste tu contraseña?
                     </Text>
                   </Pressable>
+
+                  <View style={styles.invitationNotice}>
+                    <Text style={styles.invitationNoticeTitle}>
+                      Acceso para personal invitado
+                    </Text>
+                    <Text style={styles.invitationNoticeText}>
+                      Tu empresa debe enviarte una invitación desde SMART RH. Después de activar tu cuenta podrás iniciar sesión aquí.
+                    </Text>
+                  </View>
                 </View>
               </View>
               </AnimatedEntrance>
@@ -837,18 +842,34 @@ function getStyles(COLORS: ReturnType<typeof getColors>, isDark: boolean) {
       marginTop: 18,
       paddingBottom: 2,
     },
-    primaryAction: {
-      textAlign: 'center',
-      color: COLORS.primary,
-      fontWeight: '700',
-      fontSize: 14,
-    },
     secondaryAction: {
-      marginTop: 12,
       textAlign: 'center',
       color: COLORS.textMuted,
       fontWeight: '600',
       fontSize: 13,
+    },
+    invitationNotice: {
+      marginTop: 18,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.cardSoft,
+    },
+    invitationNoticeTitle: {
+      color: COLORS.text,
+      fontSize: 13,
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+    invitationNoticeText: {
+      marginTop: 6,
+      color: COLORS.textMuted,
+      fontSize: 12,
+      fontWeight: '500',
+      lineHeight: 18,
+      textAlign: 'center',
     },
     shapeTopLeftLarge: {
       position: 'absolute',

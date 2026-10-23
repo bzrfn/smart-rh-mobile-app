@@ -12,7 +12,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
 
 import LoginScreen from '../modules/auth/LoginScreen';
-import RegisterScreen from '../modules/auth/RegisterScreen';
 import ForgotPasswordScreen from '../modules/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../modules/auth/ResetPasswordScreen';
 import VerifyLoginCodeScreen from '../modules/auth/VerifyLoginCodeScreen';
@@ -44,7 +43,6 @@ import { getSmartRhColors, getSmartRhShadow } from '../design/smartRhTheme';
 
 export type RootStackParamList = {
   Login: undefined;
-  Register: undefined;
   ForgotPassword: undefined;
   ResetPassword:
     | {
@@ -222,16 +220,6 @@ function AuthNavigator() {
         component={VerifyAccountScreen}
         options={{
           title: 'Confirmar cuenta',
-          headerTransparent: true,
-          headerTitle: '',
-        }}
-      />
-
-      <Stack.Screen
-        name="Register"
-        component={RegisterScreen}
-        options={{
-          title: 'Crear cuenta',
           headerTransparent: true,
           headerTitle: '',
         }}
