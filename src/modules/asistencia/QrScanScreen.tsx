@@ -1,3 +1,4 @@
+import { SmartRhScreen } from '../../components/SmartRhScreen';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -5,7 +6,6 @@ import {
   Animated,
   Linking,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -219,7 +219,7 @@ export default function QrScanScreen({ navigation }: Props) {
 
   if (!permission) {
     return (
-      <SafeAreaView style={styles.safeCenter}>
+      <SmartRhScreen style={styles.safeCenter}>
         <View style={styles.stateCard}>
           <ActivityIndicator color={COLORS.primary} size="large" />
           <Text style={styles.stateBrand}>SMART RH</Text>
@@ -228,7 +228,7 @@ export default function QrScanScreen({ navigation }: Props) {
             Estamos validando los permisos necesarios para iniciar el escaneo.
           </Text>
         </View>
-      </SafeAreaView>
+      </SmartRhScreen>
     );
   }
 
@@ -236,7 +236,7 @@ export default function QrScanScreen({ navigation }: Props) {
     const cannotRequestAgain = permission.canAskAgain === false;
 
     return (
-      <SafeAreaView style={styles.safeCenter}>
+      <SmartRhScreen style={styles.safeCenter}>
         <View style={styles.stateCard}>
           <View style={styles.permissionIconWrap}>
             <Text style={styles.permissionIcon}>⌁</Text>
@@ -269,12 +269,12 @@ export default function QrScanScreen({ navigation }: Props) {
             </Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </SmartRhScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SmartRhScreen style={styles.container}>
       <CameraView
         style={styles.camera}
         facing="back"
@@ -415,7 +415,7 @@ export default function QrScanScreen({ navigation }: Props) {
           )}
         </View>
       </View>
-    </SafeAreaView>
+    </SmartRhScreen>
   );
 }
 

@@ -1,3 +1,4 @@
+import { moduleHeaderOptions } from '../design/screenLayout';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import {
@@ -258,9 +259,7 @@ function EmployeeNavigator() {
       initialRouteName="Home"
       screenOptions={{
         headerShown: true,
-        headerStyle: {
-          backgroundColor: colors.surface,
-        },
+        ...moduleHeaderOptions(colors.background),
         headerShadowVisible: false,
         headerTintColor: colors.primary,
         headerTitleStyle: {
@@ -326,9 +325,7 @@ function AdminNavigator() {
       initialRouteName="AdminDashboard"
       screenOptions={{
         headerShown: true,
-        headerStyle: {
-          backgroundColor: colors.surface,
-        },
+        ...moduleHeaderOptions(colors.background),
         headerShadowVisible: false,
         headerTintColor: colors.primary,
         headerTitleStyle: {

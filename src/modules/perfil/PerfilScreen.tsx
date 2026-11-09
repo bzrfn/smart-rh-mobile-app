@@ -1,15 +1,14 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Image,
   LayoutAnimation,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { deletePrivateMedia, downloadPrivateMedia } from '../../services/privateMedia';
 import AccountProfileEditor from '../../components/AccountProfileEditor';
@@ -111,8 +110,8 @@ export default function PerfilScreen({ navigation }: Props) {
   const vacaciones = Number(user?.dias_vacaciones_disponibles ?? 0);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <SmartRhScreen style={styles.safe}>
+      <SmartRhScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <View style={styles.avatar}>
             {photoLocalUri && !photoLoadFailed ? (
@@ -233,8 +232,8 @@ export default function PerfilScreen({ navigation }: Props) {
           </ProfileAccordion>
 
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </SmartRhScrollView>
+    </SmartRhScreen>
   );
 }
 

@@ -1,16 +1,15 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -189,8 +188,8 @@ export default function AdminAsistenciaPendientesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
+    <SmartRhScreen style={styles.safe}>
+      <SmartRhScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -368,8 +367,8 @@ export default function AdminAsistenciaPendientesScreen() {
             </View>
           );
         })}
-      </ScrollView>
-    </SafeAreaView>
+      </SmartRhScrollView>
+    </SmartRhScreen>
   );
 }
 

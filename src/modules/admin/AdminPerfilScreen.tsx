@@ -1,13 +1,12 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React from 'react';
 import {
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import AccountProfileEditor from '../../components/AccountProfileEditor';
 
@@ -36,8 +35,8 @@ export default function AdminPerfilScreen({ navigation }: { navigation: any }) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <SmartRhScreen style={styles.safe}>
+      <SmartRhScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -96,8 +95,8 @@ export default function AdminPerfilScreen({ navigation }: { navigation: any }) {
             <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
           </Pressable>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </SmartRhScrollView>
+    </SmartRhScreen>
   );
 }
 

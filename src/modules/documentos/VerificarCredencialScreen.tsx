@@ -1,3 +1,4 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, {
   useRef,
   useState,
@@ -7,7 +8,6 @@ import {
   ActivityIndicator,
   Linking,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -19,7 +19,6 @@ import {
 } from 'expo-camera';
 
 import {
-  SafeAreaView,
 } from 'react-native-safe-area-context';
 
 import {
@@ -263,7 +262,7 @@ export default function VerificarCredencialScreen() {
     !isAdmin
   ) {
     return (
-      <SafeAreaView
+      <SmartRhScreen
         style={
           styles.safeCenter
         }
@@ -297,14 +296,14 @@ export default function VerificarCredencialScreen() {
             La verificación de credenciales está reservada para cuentas administradoras.
           </Text>
         </View>
-      </SafeAreaView>
+      </SmartRhScreen>
     );
   }
 
 
   if (!permission) {
     return (
-      <SafeAreaView
+      <SmartRhScreen
         style={
           styles.safeCenter
         }
@@ -345,7 +344,7 @@ export default function VerificarCredencialScreen() {
             Estamos comprobando el permiso necesario para verificar credenciales.
           </Text>
         </View>
-      </SafeAreaView>
+      </SmartRhScreen>
     );
   }
 
@@ -357,7 +356,7 @@ export default function VerificarCredencialScreen() {
       permission.canAskAgain === false;
 
     return (
-      <SafeAreaView
+      <SmartRhScreen
         style={
           styles.safeCenter
         }
@@ -417,7 +416,7 @@ export default function VerificarCredencialScreen() {
             </Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </SmartRhScreen>
     );
   }
 
@@ -433,12 +432,12 @@ export default function VerificarCredencialScreen() {
 
 
   return (
-    <SafeAreaView
+    <SmartRhScreen
       style={
         styles.safe
       }
     >
-      <ScrollView
+      <SmartRhScrollView
         contentContainerStyle={
           styles.container
         }
@@ -709,8 +708,8 @@ export default function VerificarCredencialScreen() {
             Este escáner no registra entrada ni salida. El QR de asistencia continúa funcionando en su módulo separado.
           </Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </SmartRhScrollView>
+    </SmartRhScreen>
   );
 }
 
