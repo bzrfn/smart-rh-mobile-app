@@ -1,14 +1,13 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -305,8 +304,8 @@ export default function NotificacionesScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
+    <SmartRhScreen style={styles.safe}>
+      <SmartRhScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -463,8 +462,8 @@ export default function NotificacionesScreen() {
             </Text>
           </View>
         )}
-      </ScrollView>
-    </SafeAreaView>
+      </SmartRhScrollView>
+    </SmartRhScreen>
   );
 }
 

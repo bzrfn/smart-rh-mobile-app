@@ -1,16 +1,15 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -192,7 +191,7 @@ export default function AdminUsuariosScreen() {
 
   if (!isAdmin) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SmartRhScreen style={styles.safe}>
         <View style={styles.blockedWrap}>
           <View style={styles.blockedCard}>
             <Text style={styles.blockedTitle}>Acceso restringido</Text>
@@ -201,13 +200,13 @@ export default function AdminUsuariosScreen() {
             </Text>
           </View>
         </View>
-      </SafeAreaView>
+      </SmartRhScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
+    <SmartRhScreen style={styles.safe}>
+      <SmartRhScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -390,8 +389,8 @@ export default function AdminUsuariosScreen() {
               </View>
             );
           })}
-      </ScrollView>
-    </SafeAreaView>
+      </SmartRhScrollView>
+    </SmartRhScreen>
   );
 }
 

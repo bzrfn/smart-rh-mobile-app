@@ -1,3 +1,4 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, {
   useCallback,
   useEffect,
@@ -18,7 +19,6 @@ import {
 } from 'react-native';
 
 import {
-  SafeAreaView,
 } from 'react-native-safe-area-context';
 
 import {
@@ -848,8 +848,8 @@ export default function CalendarioLaboralScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
+    <SmartRhScreen style={styles.safe}>
+      <SmartRhScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -1140,7 +1140,7 @@ export default function CalendarioLaboralScreen() {
             Ver
           </Text>
         </Pressable>
-      </ScrollView>
+      </SmartRhScrollView>
 
       <SummaryModal
         visible={!!activeSummary}
@@ -1179,7 +1179,7 @@ export default function CalendarioLaboralScreen() {
           )
         }
       />
-    </SafeAreaView>
+    </SmartRhScreen>
   );
 }
 

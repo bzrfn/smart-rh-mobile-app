@@ -1,3 +1,4 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -6,8 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -105,13 +104,13 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SmartRhScreen style={styles.safe}>
       <KeyboardAvoidingView
         style={styles.keyboard}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
+          <SmartRhScrollView
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
@@ -270,10 +269,10 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
               </View>
               </AnimatedEntrance>
             </View>
-          </ScrollView>
+          </SmartRhScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </SmartRhScreen>
   );
 }
 

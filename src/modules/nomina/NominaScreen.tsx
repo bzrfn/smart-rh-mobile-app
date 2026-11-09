@@ -1,15 +1,14 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 
@@ -83,8 +82,8 @@ export default function NominaScreen({ navigation }: Props) {
   if (!permisos.nomina) return null;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
+    <SmartRhScreen style={styles.safe}>
+      <SmartRhScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -195,8 +194,8 @@ export default function NominaScreen({ navigation }: Props) {
             ))
           )}
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </SmartRhScrollView>
+    </SmartRhScreen>
   );
 }
 

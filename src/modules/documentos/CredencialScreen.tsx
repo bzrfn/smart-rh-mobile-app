@@ -1,15 +1,14 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
 import { usePrivateMediaUri } from '../../hooks/usePrivateMediaUri';
 import { sharePrivateMedia } from '../../services/privateMedia';
@@ -97,8 +96,8 @@ export default function CredencialScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <SmartRhScreen style={styles.safe}>
+      <SmartRhScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>Identificación digital</Text>
           <Text style={styles.title}>Credencial del empleado</Text>
@@ -183,8 +182,8 @@ export default function CredencialScreen() {
             </Pressable>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </SmartRhScrollView>
+    </SmartRhScreen>
   );
 }
 

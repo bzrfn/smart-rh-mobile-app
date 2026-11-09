@@ -1,15 +1,14 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
 import { usePrivateMediaUri } from '../../hooks/usePrivateMediaUri';
 import { sharePrivateMedia } from '../../services/privateMedia';
@@ -149,8 +148,8 @@ export default function DocumentosScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <SmartRhScreen style={styles.safe}>
+      <SmartRhScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <AnimatedEntrance delay={40}>
           <View style={styles.hero}>
             <ConstellationAccent
@@ -277,8 +276,8 @@ export default function DocumentosScreen() {
             </Pressable>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </SmartRhScrollView>
+    </SmartRhScreen>
   );
 }
 

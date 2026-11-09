@@ -1,3 +1,4 @@
+import { SmartRhScreen, SmartRhScrollView } from '../../components/SmartRhScreen';
 import React, {
   useCallback,
   useEffect,
@@ -11,7 +12,6 @@ import {
   Modal,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,7 +19,6 @@ import {
 } from 'react-native';
 
 import {
-  SafeAreaView,
 } from 'react-native-safe-area-context';
 
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -1018,10 +1017,10 @@ export default function IncapacidadesScreen() {
 
 
   return (
-    <SafeAreaView
+    <SmartRhScreen
       style={styles.safe}
     >
-      <ScrollView
+      <SmartRhScrollView
         contentContainerStyle={
           styles.container
         }
@@ -1897,8 +1896,8 @@ export default function IncapacidadesScreen() {
               </Modal>
             )
           }
-      </ScrollView>
-    </SafeAreaView>
+      </SmartRhScrollView>
+    </SmartRhScreen>
   );
 }
 
