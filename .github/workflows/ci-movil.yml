@@ -1,0 +1,54 @@
+name: CI Móvil
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: movil-ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  movil-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_API_URL: https://ci.invalid
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: ./node_modules/.bin/tsc --noEmit
+      - name: Probar diseño y navegación
+        run: node --test --test-reporter=junit tests/screenLayout.test.cjs > layout.xml
+      - name: Exportar iOS
+        run: ./node_modules/.bin/expo export --platform ios --output-dir build-ci/ios --max-workers 2
+      - name: Exportar Android
+        run: ./node_modules/.bin/expo export --platform android --output-dir build-ci/android --max-workers 2
+      - name: Comprobar los bundles de cada plataforma
+        run: python3 ops/devops/verificar_exports.py build-ci
+      - if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: movil-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            layout.xml
+            build-ci/resumen.json
+          retention-days: 14
+      - name: Entregar las dos exportaciones de ensayo
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: exportaciones-moviles-ensayo-${{ github.sha }}-${{ github.run_attempt }}
+          path: build-ci/
+          if-no-files-found: error
+          retention-days: 14
