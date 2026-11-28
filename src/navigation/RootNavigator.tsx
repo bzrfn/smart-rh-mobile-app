@@ -190,7 +190,7 @@ function AuthNavigator() {
           color: colors.text,
           fontSize: 18,
         },
-        headerBackTitleVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
         contentStyle: {
           backgroundColor: colors.background,
         },
@@ -267,7 +267,7 @@ function EmployeeNavigator() {
           color: colors.text,
           fontSize: 20,
         },
-        headerBackTitleVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
         headerTitleAlign: 'center',
         contentStyle: {
           backgroundColor: colors.background,
@@ -333,7 +333,7 @@ function AdminNavigator() {
           color: colors.text,
           fontSize: 20,
         },
-        headerBackTitleVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
         headerTitleAlign: 'center',
         contentStyle: {
           backgroundColor: colors.background,
