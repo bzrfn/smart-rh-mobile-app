@@ -58,7 +58,7 @@ jobs:
           python3 ops/devops/profesional/mobile_release.py informes-ci/eas-build.json "$GITHUB_SHA" "$PLATAFORMA"
       - name: Conservar recibo de compilacion
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: compilacion-nativa-${{ github.sha }}-${{ github.run_attempt }}
           path: informes-ci/mobile-release.json
