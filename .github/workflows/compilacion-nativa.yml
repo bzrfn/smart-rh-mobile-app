@@ -1,0 +1,66 @@
+name: Compilacion nativa controlada
+on:
+  workflow_dispatch:
+    inputs:
+      plataforma:
+        description: Plataforma que se va a compilar
+        type: choice
+        required: true
+        default: android
+        options: [android, ios, all]
+      perfil:
+        description: Perfil de eas.json
+        type: choice
+        required: true
+        default: preview
+        options: [preview, production]
+permissions:
+  contents: read
+concurrency:
+  group: compilacion-nativa
+  cancel-in-progress: false
+jobs:
+  origen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exigir la rama main
+        env:
+          REF: ${{ github.ref }}
+        run: test "$REF" = refs/heads/main
+  validacion:
+    needs: origen
+    uses: ./.github/workflows/ci-movil.yml
+  compilar:
+    needs: validacion
+    environment: mobile-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Compilar la revision validada
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          PLATAFORMA: ${{ inputs.plataforma }}
+          PERFIL: ${{ inputs.perfil }}
+          CI: '1'
+        run: |
+          test -n "$EXPO_TOKEN"
+          python3 ops/devops/profesional/eas_preflight.py "$PERFIL"
+          mkdir -p informes-ci
+          npx --yes eas-cli@27.11.0 build --platform "$PLATAFORMA" --profile "$PERFIL" --non-interactive --freeze-credentials --json > informes-ci/eas-build.json
+          python3 ops/devops/profesional/mobile_release.py informes-ci/eas-build.json "$GITHUB_SHA" "$PLATAFORMA"
+      - name: Conservar recibo de compilacion
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: compilacion-nativa-${{ github.sha }}-${{ github.run_attempt }}
+          path: informes-ci/mobile-release.json
+          if-no-files-found: warn
+          retention-days: 30

@@ -1,5 +1,6 @@
 name: CI Móvil
 on:
+  workflow_call:
   pull_request:
     branches: [main]
   push:
@@ -11,7 +12,10 @@ concurrency:
   group: movil-ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  devops-calidad:
+    uses: ./.github/workflows/devops-calidad.yml
   movil-ci:
+    needs: devops-calidad
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
